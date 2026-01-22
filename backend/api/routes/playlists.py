@@ -36,7 +36,11 @@ def get_playlists(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=PlaylistResponse, status_code=201)
-def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
+def create_playlist(
+    data: PlaylistCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Create a new playlist"""
     # Check if URL already exists
     existing = db.query(Playlist).filter(Playlist.url == data.url).first()
@@ -44,7 +48,7 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Playlist URL already exists")
 
     service = PlaylistService(db)
-    playlist = service.create_playlist(
+    playlist, new_tracks = service.create_playlist(
         url=data.url,
         name=data.name,
         check_interval_hours=data.check_interval_hours,
@@ -55,6 +59,11 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail="Failed to create playlist. Please check the URL is valid.",
         )
+
+    # Download tracks in background
+    if new_tracks:
+        download_service = DownloadService(db)
+        background_tasks.add_task(download_service.download_new_tracks, new_tracks)
 
     return playlist_to_response(playlist)
 

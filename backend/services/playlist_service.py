@@ -14,18 +14,22 @@ class PlaylistService:
         self.db = db
         self.ytdlp = YtDlpService()
 
-    def create_playlist(self, url: str, name: str | None = None, check_interval_hours: int = 24) -> Playlist | None:
-        """Create a new playlist from URL"""
+    def create_playlist(self, url: str, name: str | None = None, check_interval_hours: int = 24) -> tuple[Playlist | None, list[Track]]:
+        """Create a new playlist from URL
+
+        Returns:
+            tuple: (playlist, new_tracks) - playlist object and list of newly added tracks
+        """
         platform = YtDlpService.detect_platform(url)
         if not platform:
             logger.error(f"Unsupported platform for URL: {url}")
-            return None
+            return None, []
 
         # Extract playlist info
         info = self.ytdlp.extract_playlist_info(url)
         if not info:
             logger.error(f"Failed to extract playlist info: {url}")
-            return None
+            return None, []
 
         playlist_name = name or info.get("title", "Unknown Playlist")
 
@@ -42,15 +46,18 @@ class PlaylistService:
         self.db.flush()
 
         # Add tracks
+        new_tracks = []
         entries = info.get("entries", [])
         for entry in entries:
             if not entry:
                 continue
-            self._add_track_from_entry(playlist, entry)
+            track = self._add_track_from_entry(playlist, entry)
+            if track:
+                new_tracks.append(track)
 
         self.db.commit()
         self.db.refresh(playlist)
-        return playlist
+        return playlist, new_tracks
 
     def check_for_updates(self, playlist: Playlist) -> list[Track]:
         """Check playlist for new tracks and return newly added tracks"""
