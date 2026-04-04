@@ -21,7 +21,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchData() {
+    let isMounted = true
+
+    async function fetchData(showLoading = true) {
+      if (showLoading && loading) setLoading(true)
       try {
         const [playlistsRes, statsRes, downloadsRes, schedulerRes] = await Promise.all([
           api.getPlaylists(),
@@ -29,17 +32,25 @@ export default function Dashboard() {
           api.getDownloadHistory({ limit: 5 }),
           api.getSchedulerStatus(),
         ])
-        setPlaylists(playlistsRes.data)
-        setStats(statsRes.data)
-        setRecentDownloads(downloadsRes.data)
-        setSchedulerStatus(schedulerRes.data)
+        if (isMounted) {
+          setPlaylists(playlistsRes.data)
+          setStats(statsRes.data)
+          setRecentDownloads(downloadsRes.data)
+          setSchedulerStatus(schedulerRes.data)
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
+
     fetchData()
+    const interval = setInterval(() => fetchData(false), 3000)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [])
 
   if (loading) {

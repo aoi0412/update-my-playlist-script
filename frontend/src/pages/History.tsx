@@ -33,35 +33,47 @@ export default function HistoryPage() {
   const [playlistFilter, setPlaylistFilter] = useState<string>('')
   const [retryingId, setRetryingId] = useState<number | null>(null)
 
-  async function fetchData() {
-    setLoading(true)
-    try {
-      const params: Record<string, string | number> = { limit: 100 }
-      if (statusFilter) params.status = statusFilter
-      if (playlistFilter) params.playlist_id = Number(playlistFilter)
-
-      const [downloadsRes, playlistsRes] = await Promise.all([
-        api.getDownloadHistory(params),
-        api.getPlaylists(),
-      ])
-      setDownloads(downloadsRes.data)
-      setPlaylists(playlistsRes.data)
-    } catch (error) {
-      console.error('Failed to fetch history:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchData()
+    let isMounted = true
+
+    async function fetchPolledData(showLoading = true) {
+      if (showLoading && loading) setLoading(true)
+      try {
+        const params: Record<string, string | number> = { limit: 100 }
+        if (statusFilter) params.status = statusFilter
+        if (playlistFilter) params.playlist_id = Number(playlistFilter)
+
+        const [downloadsRes, playlistsRes] = await Promise.all([
+          api.getDownloadHistory(params),
+          api.getPlaylists(),
+        ])
+        
+        if (isMounted) {
+          setDownloads(downloadsRes.data)
+          setPlaylists(playlistsRes.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch history:', error)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    fetchPolledData()
+    const interval = setInterval(() => fetchPolledData(false), 3000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [statusFilter, playlistFilter])
 
   async function handleRetry(downloadId: number) {
     setRetryingId(downloadId)
     try {
       await api.retryDownload(downloadId)
-      await fetchData()
+      // The polling loop will naturally pick up the change, but we could trigger a manual reload if we had the function exposed. Wait, we can just let polling handle it or just reload window!
+      window.location.reload()
     } catch (error) {
       console.error('Failed to retry download:', error)
       alert('Failed to retry download')
@@ -98,7 +110,7 @@ export default function HistoryPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Download History</h1>
         <button
-          onClick={fetchData}
+          onClick={() => window.location.reload()}
           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
         >
           <RefreshCw size={20} />
