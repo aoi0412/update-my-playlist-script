@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.db import engine, Base
+from backend.db.migrations import run_migrations
 from backend.api.routes import playlists_router, downloads_router, scheduler_router, settings_router
 from backend.scheduler import setup_scheduler
 
@@ -11,6 +12,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Run migrations to fix older database schemas
+run_migrations()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
