@@ -25,7 +25,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=https://yt-dlp.tamao.tech
+      - VITE_API_URL=https://api-yt-dlp.tamao.tech
     depends_on:
       - backend
     restart: unless-stopped
