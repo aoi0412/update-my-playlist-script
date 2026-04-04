@@ -36,7 +36,7 @@ class TrackWithPlaylist(TrackResponse):
 
 
 class DownloadHistoryWithTrack(DownloadHistoryResponse):
-    track: TrackWithPlaylist
+    track: TrackWithPlaylist | None = None
 
 
 class DownloadStats(BaseModel):

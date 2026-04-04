@@ -32,6 +32,12 @@ class YtDlpService:
             "quiet": True,
             "no_warnings": True,
             "ignoreerrors": True,
+            "noplaylist": True,
+            "youtube_include_dash_manifest": True,
+            "youtube_include_hls_manifest": True,
+            "verbose": True,
+            "remote_components": ["ejs:github"],
+            "format": "bestaudio/best",
         }
 
         # Use setting if explicitly provided

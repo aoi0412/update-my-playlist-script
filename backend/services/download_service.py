@@ -78,8 +78,8 @@ class DownloadService:
         status: str | None = None,
         playlist_id: int | None = None,
     ) -> list[DownloadHistory]:
-        """Get download history with optional filters"""
-        query = self.db.query(DownloadHistory)
+        """Get download history with optional filters (only returns records with valid tracks)"""
+        query = self.db.query(DownloadHistory).join(Track)
 
         if status:
             query = query.filter(DownloadHistory.status == status)

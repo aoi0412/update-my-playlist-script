@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Music, Download, CheckCircle, XCircle, Clock, HardDrive } from 'lucide-react'
+import { Music, CheckCircle, XCircle, Clock, RefreshCw, HardDrive } from 'lucide-react'
 import { api, Playlist, DownloadHistory, DownloadStats, SchedulerStatus } from '../api/client'
 import { formatDistanceToNow } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -19,41 +19,61 @@ export default function Dashboard() {
   const [recentDownloads, setRecentDownloads] = useState<DownloadHistory[]>([])
   const [schedulerStatus, setSchedulerStatus] = useState<SchedulerStatus | null>(null)
   const [loading, setLoading] = useState(true)
+  const [retryingId, setRetryingId] = useState<number | null>(null)
+
+  async function fetchData(showLoading = true) {
+    if (showLoading) setLoading(true)
+    try {
+      const [playlistsRes, statsRes, downloadsRes, schedulerRes] = await Promise.all([
+        api.getPlaylists(),
+        api.getDownloadStats(),
+        api.getDownloadHistory({ limit: 10 }),
+        api.getSchedulerStatus(),
+      ])
+      setPlaylists(playlistsRes.data)
+      setStats(statsRes.data)
+      setRecentDownloads(downloadsRes.data)
+      setSchedulerStatus(schedulerRes.data)
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    let isMounted = true
-
-    async function fetchData(showLoading = true) {
-      if (showLoading && loading) setLoading(true)
-      try {
-        const [playlistsRes, statsRes, downloadsRes, schedulerRes] = await Promise.all([
-          api.getPlaylists(),
-          api.getDownloadStats(),
-          api.getDownloadHistory({ limit: 5 }),
-          api.getSchedulerStatus(),
-        ])
-        if (isMounted) {
-          setPlaylists(playlistsRes.data)
-          setStats(statsRes.data)
-          setRecentDownloads(downloadsRes.data)
-          setSchedulerStatus(schedulerRes.data)
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-
     fetchData()
     const interval = setInterval(() => fetchData(false), 3000)
-    return () => {
-      isMounted = false
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [])
 
-  if (loading) {
+  const handleRetry = async (downloadId: number) => {
+    setRetryingId(downloadId)
+    try {
+      await api.retryDownload(downloadId)
+      await fetchData(false)
+    } catch (error) {
+      console.error('Failed to retry download:', error)
+      alert('Failed to retry download')
+    } finally {
+      setRetryingId(null)
+    }
+  }
+
+  function getStatusIcon(status: string) {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="text-green-600" size={20} />
+      case 'failed':
+        return <XCircle className="text-red-600" size={20} />
+      case 'downloading':
+        return <RefreshCw className="text-blue-600 animate-spin" size={20} />
+      default:
+        return <Clock className="text-yellow-600" size={20} />
+    }
+  }
+
+  if (loading && !recentDownloads.length) {
     return (
       <div className="p-8">
         <div className="animate-pulse">Loading...</div>
@@ -67,7 +87,6 @@ export default function Dashboard() {
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center gap-4">
@@ -118,92 +137,67 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Downloads */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h2 className="font-semibold">Recent Downloads</h2>
-            <Link to="/history" className="text-sm text-blue-600 hover:underline">
-              View all
-            </Link>
-          </div>
-          <div className="p-4">
-            {recentDownloads.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No downloads yet</p>
-            ) : (
-              <ul className="space-y-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Recent Downloads</h2>
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Track</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Playlist</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
                 {recentDownloads.map((download) => (
-                  <li key={download.id} className="flex items-center gap-3">
-                    <div
-                      className={`p-2 rounded-full ${
-                        download.status === 'completed'
-                          ? 'bg-green-100'
-                          : download.status === 'failed'
-                          ? 'bg-red-100'
-                          : 'bg-yellow-100'
-                      }`}
-                    >
-                      {download.status === 'completed' ? (
-                        <CheckCircle className="text-green-600" size={16} />
-                      ) : download.status === 'failed' ? (
-                        <XCircle className="text-red-600" size={16} />
-                      ) : (
-                        <Clock className="text-yellow-600" size={16} />
+                  <tr key={download.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(download.status)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-medium truncate max-w-xs">{download.track.title}</p>
+                      <p className="text-xs text-gray-500">{download.track.artist}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{download.track.playlist_name}</td>
+                    <td className="px-6 py-4">
+                      {download.status === 'failed' && (
+                        <button
+                          onClick={() => handleRetry(download.id)}
+                          disabled={retryingId === download.id}
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                          title="Retry"
+                        >
+                          <RefreshCw size={18} className={retryingId === download.id ? 'animate-spin' : ''} />
+                        </button>
                       )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{download.track.title}</p>
-                      <p className="text-sm text-gray-500 truncate">
-                        {download.track.artist || download.track.playlist_name}
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-400">
-                      {download.completed_at &&
-                        formatDistanceToNow(new Date(download.completed_at), {
-                          addSuffix: true,
-                          locale: ja,
-                        })}
-                    </span>
-                  </li>
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Scheduler Status */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b">
             <h2 className="font-semibold">Scheduler Status</h2>
           </div>
           <div className="p-4">
             <div className="flex items-center gap-2 mb-4">
-              <span
-                className={`w-3 h-3 rounded-full ${
-                  schedulerStatus?.running ? 'bg-green-500' : 'bg-red-500'
-                }`}
-              />
-              <span className="font-medium">
-                {schedulerStatus?.running ? 'Running' : 'Stopped'}
-              </span>
-              <span className="text-gray-500">
-                ({schedulerStatus?.job_count || 0} jobs)
-              </span>
+              <span className={`w-3 h-3 rounded-full ${schedulerStatus?.running ? 'bg-green-500' : 'bg-red-500'}`} />
+              <span className="font-medium">{schedulerStatus?.running ? 'Running' : 'Stopped'}</span>
             </div>
-
-            {schedulerStatus?.jobs && schedulerStatus.jobs.length > 0 && (
+            {schedulerStatus?.jobs && (
               <ul className="space-y-2">
                 {schedulerStatus.jobs.map((job) => (
                   <li key={job.id} className="text-sm">
                     <p className="font-medium">{job.name}</p>
                     <p className="text-gray-500">
-                      Next run:{' '}
-                      {job.next_run_time
-                        ? formatDistanceToNow(new Date(job.next_run_time), {
-                            addSuffix: true,
-                            locale: ja,
-                          })
-                        : 'Not scheduled'}
+                      Next: {job.next_run_time ? formatDistanceToNow(new Date(job.next_run_time), { addSuffix: true, locale: ja }) : 'N/A'}
                     </p>
                   </li>
                 ))}
