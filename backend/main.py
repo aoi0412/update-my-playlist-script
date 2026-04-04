@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.db import engine, Base
-from backend.api.routes import playlists_router, downloads_router, scheduler_router
+from backend.api.routes import playlists_router, downloads_router, scheduler_router, settings_router
 from backend.scheduler import setup_scheduler
 
 # Configure logging
@@ -39,6 +39,7 @@ app.add_middleware(
 app.include_router(playlists_router)
 app.include_router(downloads_router)
 app.include_router(scheduler_router)
+app.include_router(settings_router)
 
 # Setup scheduler
 setup_scheduler(app)

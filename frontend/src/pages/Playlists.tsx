@@ -7,6 +7,7 @@ import {
   ExternalLink,
   ToggleLeft,
   ToggleRight,
+  Settings,
 } from 'lucide-react'
 import { api, Playlist } from '../api/client'
 import { formatDistanceToNow } from 'date-fns'
@@ -21,6 +22,10 @@ export default function Playlists() {
   const [newInterval, setNewInterval] = useState(24)
   const [submitting, setSubmitting] = useState(false)
   const [checkingId, setCheckingId] = useState<number | null>(null)
+  const [newDownloadDir, setNewDownloadDir] = useState('')
+  const [editingPlaylistId, setEditingPlaylistId] = useState<number | null>(null)
+  const [editDownloadDir, setEditDownloadDir] = useState('')
+  const [directories, setDirectories] = useState<string[]>([])
 
   async function fetchPlaylists() {
     try {
@@ -35,7 +40,19 @@ export default function Playlists() {
 
   useEffect(() => {
     fetchPlaylists()
+    fetchDirectories()
   }, [])
+
+  async function fetchDirectories() {
+    try {
+      const response = await api.getDirectories()
+      const dirs = response.data.directories
+      setDirectories(dirs)
+      setNewDownloadDir(prev => prev || dirs[0] || '')
+    } catch (error) {
+      console.error('Failed to fetch directories:', error)
+    }
+  }
 
   async function handleAddPlaylist(e: React.FormEvent) {
     e.preventDefault()
@@ -45,10 +62,12 @@ export default function Playlists() {
         url: newUrl,
         name: newName || undefined,
         check_interval_hours: newInterval,
+        download_dir: newDownloadDir || undefined,
       })
       setNewUrl('')
       setNewName('')
       setNewInterval(24)
+      setNewDownloadDir('')
       setShowAddForm(false)
       await fetchPlaylists()
     } catch (error) {
@@ -75,6 +94,17 @@ export default function Playlists() {
       await fetchPlaylists()
     } catch (error) {
       console.error('Failed to update playlist:', error)
+    }
+  }
+
+  async function handleUpdateDownloadDir(playlistId: number) {
+    try {
+      await api.updatePlaylist(playlistId, { download_dir: editDownloadDir })
+      setEditingPlaylistId(null)
+      await fetchPlaylists()
+    } catch (error) {
+      console.error('Failed to update download directory:', error)
+      alert('Failed to update download directory')
     }
   }
 
@@ -168,6 +198,40 @@ export default function Playlists() {
                 <option value={168}>Every week</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Download Directory
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={newDownloadDir}
+                  onChange={(e) => setNewDownloadDir(e.target.value)}
+                  className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {directories.map((dir) => (
+                    <option key={dir} value={dir}>{dir}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const name = prompt('Enter new directory name (e.g. "Anime" or "Anime/OST"):')
+                    if (name) {
+                      try {
+                        const res = await api.createDirectory({ name })
+                        await fetchDirectories()
+                        setNewDownloadDir(res.data.directory)
+                      } catch (err) {
+                        alert('Failed to create directory')
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+                >
+                  + New
+                </button>
+              </div>
+            </div>
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -246,6 +310,56 @@ export default function Playlists() {
                       </span>
                     )}
                   </div>
+                  {editingPlaylistId === playlist.id ? (
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <select
+                        value={editDownloadDir}
+                        onChange={(e) => setEditDownloadDir(e.target.value)}
+                        className="flex-1 px-3 py-1 text-sm border rounded min-w-[200px]"
+                      >
+                        {directories.map((dir) => (
+                          <option key={dir} value={dir}>{dir}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const name = prompt('Enter new directory name:')
+                          if (name) {
+                            try {
+                              const res = await api.createDirectory({ name })
+                              await fetchDirectories()
+                              setEditDownloadDir(res.data.directory)
+                            } catch (err) {
+                              alert('Failed to create directory')
+                            }
+                          }
+                        }}
+                        className="px-2 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 whitespace-nowrap"
+                        title="Create New Directory"
+                      >
+                        + New
+                      </button>
+                      <button
+                        onClick={() => handleUpdateDownloadDir(playlist.id)}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingPlaylistId(null)}
+                        className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    playlist.download_dir && (
+                      <p className="mt-2 text-sm text-gray-600 bg-gray-50 px-2 py-1 rounded inline-block">
+                        Download to: <span className="font-mono">{playlist.download_dir}</span>
+                      </p>
+                    )
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -281,6 +395,16 @@ export default function Playlists() {
                   >
                     <ExternalLink className="text-gray-600" size={20} />
                   </a>
+                  <button
+                    onClick={() => {
+                      setEditingPlaylistId(playlist.id)
+                      setEditDownloadDir(playlist.download_dir || '')
+                    }}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Edit settings"
+                  >
+                    <Settings className="text-gray-600" size={20} />
+                  </button>
                   <button
                     onClick={() => handleDelete(playlist.id)}
                     className="p-2 hover:bg-red-100 rounded-lg transition-colors"

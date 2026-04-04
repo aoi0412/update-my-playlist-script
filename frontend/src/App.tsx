@@ -1,8 +1,9 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Home, ListMusic, History, Settings } from 'lucide-react'
+import { Home, ListMusic, History, Settings as SettingsIcon } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Playlists from './pages/Playlists'
 import HistoryPage from './pages/History'
+import SettingsPage from './pages/Settings'
 
 function App() {
   const location = useLocation()
@@ -11,6 +12,7 @@ function App() {
     { path: '/', icon: Home, label: 'Dashboard' },
     { path: '/playlists', icon: ListMusic, label: 'Playlists' },
     { path: '/history', icon: History, label: 'History' },
+    { path: '/settings', icon: SettingsIcon, label: 'Settings' },
   ]
 
   return (
@@ -46,11 +48,12 @@ function App() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-gray-50">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/playlists" element={<Playlists />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </main>
     </div>

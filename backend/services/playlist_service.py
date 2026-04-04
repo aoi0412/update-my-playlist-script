@@ -14,7 +14,7 @@ class PlaylistService:
         self.db = db
         self.ytdlp = YtDlpService()
 
-    def create_playlist(self, url: str, name: str | None = None, check_interval_hours: int = 24) -> Playlist | None:
+    def create_playlist(self, url: str, name: str | None = None, check_interval_hours: int = 24, download_dir: str | None = None) -> Playlist | None:
         """Create a new playlist from URL"""
         platform = YtDlpService.detect_platform(url)
         if not platform:
@@ -34,6 +34,7 @@ class PlaylistService:
             url=url,
             name=playlist_name,
             platform=platform,
+            download_dir=download_dir,
             check_interval_hours=check_interval_hours,
             is_active=True,
             last_checked_at=datetime.utcnow(),

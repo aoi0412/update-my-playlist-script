@@ -19,6 +19,7 @@ class Playlist(Base):
     url = Column(String(500), nullable=False, unique=True)
     name = Column(String(255), nullable=False)
     platform = Column(String(50), nullable=False)  # 'youtube_music' or 'soundcloud'
+    download_dir = Column(String(500), nullable=True)
     check_interval_hours = Column(Integer, default=24)
     is_active = Column(Boolean, default=True)
     last_checked_at = Column(DateTime, nullable=True)

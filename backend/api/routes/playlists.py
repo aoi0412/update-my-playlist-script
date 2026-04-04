@@ -19,6 +19,7 @@ def playlist_to_response(playlist: Playlist) -> dict:
         "url": playlist.url,
         "name": playlist.name,
         "platform": playlist.platform,
+        "download_dir": playlist.download_dir,
         "check_interval_hours": playlist.check_interval_hours,
         "is_active": playlist.is_active,
         "last_checked_at": playlist.last_checked_at,
@@ -36,7 +37,11 @@ def get_playlists(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=PlaylistResponse, status_code=201)
-def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
+def create_playlist(
+    data: PlaylistCreate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     """Create a new playlist"""
     # Check if URL already exists
     existing = db.query(Playlist).filter(Playlist.url == data.url).first()
@@ -48,6 +53,7 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
         url=data.url,
         name=data.name,
         check_interval_hours=data.check_interval_hours,
+        download_dir=data.download_dir,
     )
 
     if not playlist:
@@ -55,6 +61,10 @@ def create_playlist(data: PlaylistCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail="Failed to create playlist. Please check the URL is valid.",
         )
+
+    if playlist.tracks:
+        download_service = DownloadService(db)
+        background_tasks.add_task(download_service.download_new_tracks, playlist.tracks)
 
     return playlist_to_response(playlist)
 
@@ -86,6 +96,8 @@ def update_playlist(
         playlist.check_interval_hours = data.check_interval_hours
     if data.is_active is not None:
         playlist.is_active = data.is_active
+    if data.download_dir is not None:
+        playlist.download_dir = data.download_dir if data.download_dir.strip() else None
 
     db.commit()
     db.refresh(playlist)
@@ -114,12 +126,23 @@ def check_playlist_updates(
     playlist_service = PlaylistService(db)
     new_tracks = playlist_service.check_for_updates(playlist)
 
-    # Download new tracks in background
-    if new_tracks:
+    from backend.db.models import Track, DownloadHistory
+    stuck_tracks = db.query(Track).outerjoin(DownloadHistory).filter(
+        Track.playlist_id == playlist_id,
+        DownloadHistory.id == None
+    ).all()
+
+    tracks_to_download = stuck_tracks
+
+    if tracks_to_download:
         download_service = DownloadService(db)
-        background_tasks.add_task(download_service.download_new_tracks, new_tracks)
+        background_tasks.add_task(download_service.download_new_tracks, tracks_to_download)
+
+    msg = f"Found {len(new_tracks)} new tracks"
+    if len(tracks_to_download) > len(new_tracks):
+        msg += f". Queued {len(tracks_to_download)} missing downloads."
 
     return {
-        "message": f"Found {len(new_tracks)} new tracks",
-        "new_tracks": [{"id": t.id, "title": t.title} for t in new_tracks],
+        "message": msg,
+        "new_tracks": [{"id": t.id, "title": t.title} for t in tracks_to_download],
     }

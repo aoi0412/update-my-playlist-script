@@ -34,13 +34,15 @@ class DownloadService:
 
             track_url = YtDlpService.build_track_url(playlist.platform, track.external_id)
 
+            ytdlp = YtDlpService(download_dir=playlist.download_dir) if playlist.download_dir else self.ytdlp
+
             # Download
-            info = self.ytdlp.download_track(track_url)
+            info = ytdlp.download_track(track_url)
             if not info:
                 raise Exception("Download returned no info")
 
             # Get file path and size
-            file_path = self.ytdlp.get_downloaded_file_path(info)
+            file_path = ytdlp.get_downloaded_file_path(info)
             file_size = os.path.getsize(file_path) if file_path and os.path.exists(file_path) else None
 
             # Update history

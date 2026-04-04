@@ -6,6 +6,7 @@ class PlaylistBase(BaseModel):
     url: str
     name: str | None = None
     check_interval_hours: int = 24
+    download_dir: str | None = None
 
     @field_validator("url")
     @classmethod
@@ -28,6 +29,7 @@ class PlaylistUpdate(BaseModel):
     name: str | None = None
     check_interval_hours: int | None = None
     is_active: bool | None = None
+    download_dir: str | None = None
 
 
 class TrackBasic(BaseModel):
@@ -48,6 +50,7 @@ class PlaylistResponse(BaseModel):
     url: str
     name: str
     platform: str
+    download_dir: str | None = None
     check_interval_hours: int
     is_active: bool
     last_checked_at: datetime | None

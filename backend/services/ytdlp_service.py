@@ -16,21 +16,30 @@ class YtDlpService:
 
         self.base_opts = {
             "format": "bestaudio/best",
+            "outtmpl": f"{self.download_dir}/%(artist,uploader)s - %(title)s.%(ext)s",
+            "writethumbnail": True,
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": settings.audio_format,
                     "preferredquality": settings.audio_quality,
-                }
+                },
+                {"key": "EmbedThumbnail"},
+                {"key": "FFmpegMetadata"},
             ],
-            "outtmpl": f"{self.download_dir}/%(title)s.%(ext)s",
+            "sleep_interval": 5,
+            "max_sleep_interval": 10,
             "quiet": True,
             "no_warnings": True,
             "ignoreerrors": True,
         }
 
+        # Use setting if explicitly provided
         if settings.youtube_cookies_file:
             self.base_opts["cookiefile"] = settings.youtube_cookies_file
+        # Otherwise, look for data/cookies.txt
+        elif Path("./data/cookies.txt").exists():
+            self.base_opts["cookiefile"] = "./data/cookies.txt"
 
     def extract_playlist_info(self, url: str) -> dict | None:
         """Extract playlist metadata without downloading"""
@@ -84,16 +93,35 @@ class YtDlpService:
         if not info:
             return None
 
+        # Sometimes yt-dlp provides the exact final file path in requested_downloads
+        requested_downloads = info.get("requested_downloads")
+        if requested_downloads and len(requested_downloads) > 0:
+            filepath = requested_downloads[0].get("filepath")
+            if filepath and Path(filepath).exists():
+                return filepath
+
+        # Fallback: re-construct file path from ydl.prepare_filename
+        try:
+            with yt_dlp.YoutubeDL(self.base_opts) as ydl:
+                filename = ydl.prepare_filename(info)
+                # Replace the original extension (like .webm or .m4a) with our audio_format
+                import os
+                base_name = os.path.splitext(filename)[0]
+                expected_path = f"{base_name}.{settings.audio_format}"
+                if Path(expected_path).exists():
+                    return expected_path
+        except Exception as e:
+            logger.warning(f"Failed to cleanly determine file path via prepare_filename: {e}")
+
+        # Final fallback using the original static logic just in case prepare_filename fails entirely
         title = info.get("title", "unknown")
-        # yt-dlp sanitizes filenames, so we need to do the same
+        artist = info.get("artist") or info.get("uploader") or "NA"
+        
+        # This fallback is highly fragile with dynamic templates but kept for emergencies
         safe_title = yt_dlp.utils.sanitize_filename(title)
-        file_path = Path(self.download_dir) / f"{safe_title}.{settings.audio_format}"
-
-        if file_path.exists():
-            return str(file_path)
-
-        # Try to find the file with original title
-        file_path = Path(self.download_dir) / f"{title}.{settings.audio_format}"
+        safe_artist = yt_dlp.utils.sanitize_filename(artist)
+        
+        file_path = Path(self.download_dir) / f"{safe_artist} - {safe_title}.{settings.audio_format}"
         if file_path.exists():
             return str(file_path)
 

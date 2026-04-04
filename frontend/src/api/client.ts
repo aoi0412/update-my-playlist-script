@@ -15,6 +15,7 @@ export interface Playlist {
   url: string
   name: string
   platform: string
+  download_dir: string | null
   check_interval_hours: number
   is_active: boolean
   last_checked_at: string | null
@@ -71,9 +72,9 @@ export const api = {
   // Playlists
   getPlaylists: () => client.get<Playlist[]>('/api/playlists'),
   getPlaylist: (id: number) => client.get<Playlist & { tracks: Track[] }>(`/api/playlists/${id}`),
-  createPlaylist: (data: { url: string; name?: string; check_interval_hours?: number }) =>
+  createPlaylist: (data: { url: string; name?: string; check_interval_hours?: number; download_dir?: string }) =>
     client.post<Playlist>('/api/playlists', data),
-  updatePlaylist: (id: number, data: { name?: string; check_interval_hours?: number; is_active?: boolean }) =>
+  updatePlaylist: (id: number, data: { name?: string; check_interval_hours?: number; is_active?: boolean; download_dir?: string }) =>
     client.put<Playlist>(`/api/playlists/${id}`, data),
   deletePlaylist: (id: number) => client.delete(`/api/playlists/${id}`),
   checkPlaylistUpdates: (id: number) =>
@@ -90,6 +91,15 @@ export const api = {
   getSchedulerStatus: () => client.get<SchedulerStatus>('/api/scheduler/status'),
   pauseScheduler: () => client.post('/api/scheduler/pause'),
   resumeScheduler: () => client.post('/api/scheduler/resume'),
+  // Settings
+  getCookiesStatus: () => client.get<{ exists: boolean }>('/api/settings/cookies/status'),
+  uploadCookies: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return client.post<{ message: string }>('/api/settings/cookies', formData)
+  },
+  getDirectories: () => client.get<{ directories: string[] }>('/api/settings/directories'),
+  createDirectory: (data: { name: string }) => client.post<{ directory: string }>('/api/settings/directories', data),
 }
 
 export default client
