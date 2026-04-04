@@ -96,7 +96,7 @@ export const api = {
   uploadCookies: (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    return client.post<{ message: string }>('/api/settings/cookies', formData)
+    return axios.post<{ message: string }>(`${API_URL}/api/settings/cookies`, formData)
   },
   getDirectories: () => client.get<{ directories: string[] }>('/api/settings/directories'),
   createDirectory: (data: { name: string }) => client.post<{ directory: string }>('/api/settings/directories', data),

@@ -41,7 +41,12 @@ export default function Settings() {
       setSuccessMsg('cookies.txt uploaded successfully!')
       setCookiesStatus(true)
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to upload cookies file.')
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail.map((e: any) => e.msg).join(', '));
+      } else {
+        setError(detail || 'Failed to upload cookies file.');
+      }
     } finally {
       setIsUploading(false)
       // Reset input
