@@ -76,7 +76,7 @@ class YtDlpService:
         self, url: str, progress_hook: Callable | None = None
     ) -> dict | None:
         """Download track as MP3"""
-        opts = {**self.base_opts}
+        opts = {**self.base_opts, "ignoreerrors": False}
         if progress_hook:
             opts["progress_hooks"] = [progress_hook]
 
@@ -86,7 +86,7 @@ class YtDlpService:
                 return info
         except Exception as e:
             logger.error(f"Failed to download track: {e}")
-            return None
+            raise  # Let the download_service capture the actual error
 
     def get_downloaded_file_path(self, info: dict) -> str | None:
         """Get the path of the downloaded file from yt-dlp info"""
