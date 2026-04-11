@@ -1,5 +1,5 @@
+import asyncio
 import logging
-from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.db import SessionLocal, Playlist
@@ -10,10 +10,8 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
-async def check_playlist_updates_job(playlist_id: int):
-    """Check a playlist for updates and download new tracks"""
-    logger.info(f"Running scheduled check for playlist {playlist_id}")
-
+def _run_playlist_check(playlist_id: int):
+    """Synchronous worker: check a playlist and download new tracks (runs in thread pool)"""
     db = SessionLocal()
     try:
         playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
@@ -37,10 +35,16 @@ async def check_playlist_updates_job(playlist_id: int):
         db.close()
 
 
-async def check_incomplete_downloads_job():
-    """Check for incomplete downloads across all playlists and re-download them"""
-    logger.info("Running scheduled check for incomplete downloads")
+async def check_playlist_updates_job(playlist_id: int):
+    """Check a playlist for updates and download new tracks.
+    Runs the blocking yt-dlp work in a thread pool so the event loop stays responsive.
+    """
+    logger.info(f"Running scheduled check for playlist {playlist_id}")
+    await asyncio.to_thread(_run_playlist_check, playlist_id)
 
+
+def _run_incomplete_check():
+    """Synchronous worker: find and re-download incomplete tracks (runs in thread pool)"""
     db = SessionLocal()
     try:
         download_service = DownloadService(db)
@@ -49,10 +53,11 @@ async def check_incomplete_downloads_job():
         failed_count = len(incomplete["failed"])
         missing_count = len(incomplete["file_missing"])
         never_count = len(incomplete["never_downloaded"])
-        total = failed_count + missing_count + never_count
+        truncated_count = len(incomplete["truncated"])
+        total = failed_count + missing_count + never_count + truncated_count
 
         logger.info(
-            f"Incomplete downloads found: failed={failed_count}, "
+            f"Incomplete downloads found: truncated={truncated_count}, failed={failed_count}, "
             f"file_missing={missing_count}, never_downloaded={never_count}"
         )
 
@@ -62,7 +67,8 @@ async def check_incomplete_downloads_job():
 
         result = download_service.redownload_incomplete()
         retried = (
-            len(result["retried_failed"])
+            len(result["retried_truncated"])
+            + len(result["retried_failed"])
             + len(result["retried_file_missing"])
             + len(result["retried_never_downloaded"])
         )
@@ -72,6 +78,14 @@ async def check_incomplete_downloads_job():
         logger.error(f"Error during incomplete downloads check: {e}")
     finally:
         db.close()
+
+
+async def check_incomplete_downloads_job():
+    """Check for incomplete downloads and re-download them.
+    Runs the blocking yt-dlp work in a thread pool so the event loop stays responsive.
+    """
+    logger.info("Running scheduled check for incomplete downloads")
+    await asyncio.to_thread(_run_incomplete_check)
 
 
 def schedule_playlist_check(playlist: Playlist):
