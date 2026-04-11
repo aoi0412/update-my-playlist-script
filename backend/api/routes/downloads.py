@@ -7,10 +7,40 @@ from backend.api.schemas.download import (
     DownloadHistoryResponse,
     DownloadHistoryWithTrack,
     DownloadStats,
+    IncompleteDownloadsResponse,
+    RedownloadResult,
+    TruncatedDownload,
 )
 from backend.services import DownloadService
 
 router = APIRouter(prefix="/api/downloads", tags=["downloads"])
+
+
+def _build_history_with_track(history: DownloadHistory, db: Session) -> dict:
+    track = db.query(Track).filter(Track.id == history.track_id).first()
+    playlist = db.query(Playlist).filter(Playlist.id == track.playlist_id).first() if track else None
+    return {
+        "id": history.id,
+        "track_id": history.track_id,
+        "status": history.status,
+        "file_path": history.file_path,
+        "file_size_bytes": history.file_size_bytes,
+        "error_message": history.error_message,
+        "started_at": history.started_at,
+        "completed_at": history.completed_at,
+        "created_at": history.created_at,
+        "track": {
+            "id": track.id,
+            "playlist_id": track.playlist_id,
+            "external_id": track.external_id,
+            "title": track.title,
+            "artist": track.artist,
+            "duration_seconds": track.duration_seconds,
+            "thumbnail_url": track.thumbnail_url,
+            "first_seen_at": track.first_seen_at,
+            "playlist_name": playlist.name if playlist else "Unknown",
+        } if track else None,
+    }
 
 
 @router.get("", response_model=list[DownloadHistoryWithTrack])
@@ -29,36 +59,7 @@ def get_download_history(
         status=status,
         playlist_id=playlist_id,
     )
-
-    result = []
-    for history in history_list:
-        track = db.query(Track).filter(Track.id == history.track_id).first()
-        playlist = db.query(Playlist).filter(Playlist.id == track.playlist_id).first() if track else None
-
-        result.append({
-            "id": history.id,
-            "track_id": history.track_id,
-            "status": history.status,
-            "file_path": history.file_path,
-            "file_size_bytes": history.file_size_bytes,
-            "error_message": history.error_message,
-            "started_at": history.started_at,
-            "completed_at": history.completed_at,
-            "created_at": history.created_at,
-            "track": {
-                "id": track.id,
-                "playlist_id": track.playlist_id,
-                "external_id": track.external_id,
-                "title": track.title,
-                "artist": track.artist,
-                "duration_seconds": track.duration_seconds,
-                "thumbnail_url": track.thumbnail_url,
-                "first_seen_at": track.first_seen_at,
-                "playlist_name": playlist.name if playlist else "Unknown",
-            } if track else None,
-        })
-
-    return result
+    return [_build_history_with_track(h, db) for h in history_list]
 
 
 @router.get("/stats", response_model=DownloadStats)
@@ -66,6 +67,93 @@ def get_download_stats(db: Session = Depends(get_db)):
     """Get download statistics"""
     service = DownloadService(db)
     return service.get_download_stats()
+
+
+# NOTE: /incomplete and /incomplete/redownload must come before /{download_id}
+# so FastAPI does not try to parse "incomplete" as an integer.
+
+@router.get("/incomplete", response_model=IncompleteDownloadsResponse)
+def get_incomplete_downloads(
+    playlist_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Check for incomplete downloads across all tracks:
+    - truncated: file exists but audio is cut off (actual duration much shorter than expected)
+    - failed: download failed with an error
+    - file_missing: completed but the file no longer exists on disk
+    - never_downloaded: tracks that have never been downloaded at all
+    Optionally filter by playlist_id.
+    """
+    service = DownloadService(db)
+    incomplete = service.get_incomplete_downloads()
+
+    def _matches_playlist(track_id: int) -> bool:
+        if not playlist_id:
+            return True
+        t = db.query(Track).filter(Track.id == track_id).first()
+        return t is not None and t.playlist_id == playlist_id
+
+    truncated = [
+        {
+            "history": _build_history_with_track(item["history"], db),
+            "expected_duration_seconds": item["expected_duration_seconds"],
+            "actual_duration_seconds": item["actual_duration_seconds"],
+        }
+        for item in incomplete["truncated"]
+        if _matches_playlist(item["history"].track_id)
+    ]
+
+    failed = [
+        _build_history_with_track(h, db)
+        for h in incomplete["failed"]
+        if _matches_playlist(h.track_id)
+    ]
+
+    file_missing = [
+        _build_history_with_track(h, db)
+        for h in incomplete["file_missing"]
+        if _matches_playlist(h.track_id)
+    ]
+
+    never_downloaded = [
+        t for t in incomplete["never_downloaded"]
+        if not playlist_id or t.playlist_id == playlist_id
+    ]
+
+    return {
+        "truncated": truncated,
+        "failed": failed,
+        "file_missing": file_missing,
+        "never_downloaded": never_downloaded,
+        "total_count": len(truncated) + len(failed) + len(file_missing) + len(never_downloaded),
+    }
+
+
+@router.post("/incomplete/redownload", response_model=RedownloadResult)
+def redownload_incomplete(
+    playlist_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Re-download all incomplete tracks (truncated, failed, file missing, or never downloaded).
+    Optionally filter by playlist_id.
+    """
+    service = DownloadService(db)
+    result = service.redownload_incomplete(playlist_id=playlist_id)
+
+    retried_truncated = len(result["retried_truncated"])
+    retried_failed = len(result["retried_failed"])
+    retried_missing = len(result["retried_file_missing"])
+    retried_never = len(result["retried_never_downloaded"])
+
+    return {
+        "retried_truncated_count": retried_truncated,
+        "retried_failed_count": retried_failed,
+        "retried_file_missing_count": retried_missing,
+        "retried_never_downloaded_count": retried_never,
+        "total_retried": retried_truncated + retried_failed + retried_missing + retried_never,
+    }
 
 
 @router.get("/{download_id}", response_model=DownloadHistoryResponse)

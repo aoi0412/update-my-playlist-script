@@ -37,6 +37,43 @@ async def check_playlist_updates_job(playlist_id: int):
         db.close()
 
 
+async def check_incomplete_downloads_job():
+    """Check for incomplete downloads across all playlists and re-download them"""
+    logger.info("Running scheduled check for incomplete downloads")
+
+    db = SessionLocal()
+    try:
+        download_service = DownloadService(db)
+        incomplete = download_service.get_incomplete_downloads()
+
+        failed_count = len(incomplete["failed"])
+        missing_count = len(incomplete["file_missing"])
+        never_count = len(incomplete["never_downloaded"])
+        total = failed_count + missing_count + never_count
+
+        logger.info(
+            f"Incomplete downloads found: failed={failed_count}, "
+            f"file_missing={missing_count}, never_downloaded={never_count}"
+        )
+
+        if total == 0:
+            logger.info("No incomplete downloads found")
+            return
+
+        result = download_service.redownload_incomplete()
+        retried = (
+            len(result["retried_failed"])
+            + len(result["retried_file_missing"])
+            + len(result["retried_never_downloaded"])
+        )
+        logger.info(f"Re-download complete: {retried} tracks retried")
+
+    except Exception as e:
+        logger.error(f"Error during incomplete downloads check: {e}")
+    finally:
+        db.close()
+
+
 def schedule_playlist_check(playlist: Playlist):
     """Schedule periodic check for a playlist"""
     job_id = f"playlist_check_{playlist.id}"
@@ -74,6 +111,16 @@ def setup_scheduler(app):
             playlists = db.query(Playlist).filter(Playlist.is_active == True).all()
             for playlist in playlists:
                 schedule_playlist_check(playlist)
+
+            # Schedule periodic incomplete download check (every 6 hours)
+            scheduler.add_job(
+                check_incomplete_downloads_job,
+                trigger=IntervalTrigger(hours=6),
+                id="check_incomplete_downloads",
+                name="Check incomplete downloads",
+                replace_existing=True,
+            )
+            logger.info("Scheduled incomplete downloads check every 6 hours")
 
             scheduler.start()
             logger.info(f"Scheduler started with {len(playlists)} playlist jobs")

@@ -45,3 +45,39 @@ class DownloadStats(BaseModel):
     failed_downloads: int
     pending_downloads: int
     total_file_size_bytes: int
+
+
+class TrackSimple(BaseModel):
+    id: int
+    playlist_id: int
+    external_id: str
+    title: str
+    artist: str | None
+    duration_seconds: int | None
+    first_seen_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TruncatedDownload(BaseModel):
+    """A completed download whose audio is shorter than the expected duration."""
+    history: DownloadHistoryWithTrack
+    expected_duration_seconds: int
+    actual_duration_seconds: float
+
+
+class IncompleteDownloadsResponse(BaseModel):
+    truncated: list[TruncatedDownload]
+    failed: list[DownloadHistoryWithTrack]
+    file_missing: list[DownloadHistoryWithTrack]
+    never_downloaded: list[TrackSimple]
+    total_count: int
+
+
+class RedownloadResult(BaseModel):
+    retried_truncated_count: int
+    retried_failed_count: int
+    retried_file_missing_count: int
+    retried_never_downloaded_count: int
+    total_retried: int
