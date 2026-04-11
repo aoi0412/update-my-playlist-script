@@ -45,3 +45,29 @@ class DownloadStats(BaseModel):
     failed_downloads: int
     pending_downloads: int
     total_file_size_bytes: int
+
+
+class TrackSimple(BaseModel):
+    id: int
+    playlist_id: int
+    external_id: str
+    title: str
+    artist: str | None
+    first_seen_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class IncompleteDownloadsResponse(BaseModel):
+    failed: list[DownloadHistoryWithTrack]
+    file_missing: list[DownloadHistoryWithTrack]
+    never_downloaded: list[TrackSimple]
+    total_count: int
+
+
+class RedownloadResult(BaseModel):
+    retried_failed_count: int
+    retried_file_missing_count: int
+    retried_never_downloaded_count: int
+    total_retried: int

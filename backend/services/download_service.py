@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.db.models import Track, DownloadHistory, Playlist
 from backend.services.ytdlp_service import YtDlpService
 
@@ -143,3 +144,94 @@ class DownloadService:
             return None
 
         return self.download_track(track)
+
+    def get_incomplete_downloads(self) -> dict:
+        """
+        Identify tracks with incomplete downloads:
+        - Tracks that failed (status = 'failed')
+        - Tracks completed but file no longer exists on disk
+        - Tracks never downloaded (no download history)
+        Returns a dict with categorized results.
+        """
+        # 1. Failed downloads
+        failed_histories = (
+            self.db.query(DownloadHistory)
+            .filter(DownloadHistory.status == "failed")
+            .order_by(DownloadHistory.created_at.desc())
+            .all()
+        )
+
+        # 2. Completed but file missing on disk
+        completed_histories = (
+            self.db.query(DownloadHistory)
+            .filter(DownloadHistory.status == "completed")
+            .all()
+        )
+        file_missing_histories = [
+            h for h in completed_histories
+            if not h.file_path or not os.path.exists(h.file_path)
+        ]
+
+        # 3. Tracks with no download history at all
+        downloaded_track_ids = (
+            self.db.query(DownloadHistory.track_id)
+            .distinct()
+            .subquery()
+        )
+        never_downloaded_tracks = (
+            self.db.query(Track)
+            .filter(Track.id.notin_(downloaded_track_ids))
+            .all()
+        )
+
+        return {
+            "failed": failed_histories,
+            "file_missing": file_missing_histories,
+            "never_downloaded": never_downloaded_tracks,
+        }
+
+    def redownload_incomplete(self, playlist_id: int | None = None) -> dict:
+        """
+        Re-download all incomplete tracks.
+        Optionally filter by playlist_id.
+        Returns counts of retried items per category.
+        """
+        incomplete = self.get_incomplete_downloads()
+
+        retried_failed = []
+        for history in incomplete["failed"]:
+            track = self.db.query(Track).filter(Track.id == history.track_id).first()
+            if not track:
+                continue
+            if playlist_id and track.playlist_id != playlist_id:
+                continue
+            new_history = self.download_track(track)
+            retried_failed.append(new_history)
+
+        retried_missing = []
+        for history in incomplete["file_missing"]:
+            track = self.db.query(Track).filter(Track.id == history.track_id).first()
+            if not track:
+                continue
+            if playlist_id and track.playlist_id != playlist_id:
+                continue
+            new_history = self.download_track(track)
+            retried_missing.append(new_history)
+
+        retried_never = []
+        for track in incomplete["never_downloaded"]:
+            if playlist_id and track.playlist_id != playlist_id:
+                continue
+            new_history = self.download_track(track)
+            retried_never.append(new_history)
+
+        logger.info(
+            f"Redownload incomplete: failed={len(retried_failed)}, "
+            f"file_missing={len(retried_missing)}, never_downloaded={len(retried_never)}"
+        )
+
+        return {
+            "retried_failed": retried_failed,
+            "retried_file_missing": retried_missing,
+            "retried_never_downloaded": retried_never,
+        }
