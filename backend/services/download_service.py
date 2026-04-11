@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -7,6 +8,55 @@ from backend.db.models import Track, DownloadHistory, Playlist
 from backend.services.ytdlp_service import YtDlpService
 
 logger = logging.getLogger(__name__)
+
+# Threshold for flagging a file as truncated:
+# actual duration must be shorter than expected by more than this ratio AND more than MIN_TRUNCATION_SECONDS
+TRUNCATION_RATIO_THRESHOLD = 0.10   # 10% shorter than expected
+TRUNCATION_MIN_SECONDS = 10         # at least 10 seconds missing
+
+
+def get_audio_duration(file_path: str) -> float | None:
+    """
+    Use ffprobe to get the actual duration of an audio file in seconds.
+    Returns None if ffprobe is unavailable or the file cannot be read.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v", "quiet",
+                "-show_entries", "format=duration",
+                "-of", "csv=p=0",
+                file_path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        output = result.stdout.strip()
+        if output:
+            return float(output)
+    except FileNotFoundError:
+        logger.warning("ffprobe not found; skipping audio duration check")
+    except (ValueError, subprocess.TimeoutExpired) as e:
+        logger.warning(f"Failed to get audio duration for {file_path}: {e}")
+    return None
+
+
+def is_audio_truncated(file_path: str, expected_seconds: int) -> tuple[bool, float | None]:
+    """
+    Check whether an audio file is truncated compared to the expected duration.
+    Returns (is_truncated, actual_duration_seconds).
+    """
+    actual = get_audio_duration(file_path)
+    if actual is None:
+        return False, None
+
+    shortfall = expected_seconds - actual
+    if shortfall > TRUNCATION_MIN_SECONDS and shortfall / expected_seconds > TRUNCATION_RATIO_THRESHOLD:
+        return True, actual
+
+    return False, actual
 
 
 class DownloadService:
@@ -148,29 +198,52 @@ class DownloadService:
     def get_incomplete_downloads(self) -> dict:
         """
         Identify tracks with incomplete downloads:
-        - Tracks that failed (status = 'failed')
-        - Tracks completed but file no longer exists on disk
-        - Tracks never downloaded (no download history)
+        - truncated: file exists but audio is cut off (actual duration << expected)
+        - failed: download failed with an error
+        - file_missing: marked completed but file no longer exists on disk
+        - never_downloaded: tracks that have no download history at all
         Returns a dict with categorized results.
         """
-        # 1. Failed downloads
+        # 1. Truncated files: completed downloads whose audio is shorter than expected
+        completed_histories = (
+            self.db.query(DownloadHistory)
+            .filter(DownloadHistory.status == "completed")
+            .all()
+        )
+
+        truncated = []
+        file_missing_histories = []
+
+        for history in completed_histories:
+            if not history.file_path or not os.path.exists(history.file_path):
+                file_missing_histories.append(history)
+                continue
+
+            # Check for audio truncation when expected duration is known
+            track = self.db.query(Track).filter(Track.id == history.track_id).first()
+            if track and track.duration_seconds:
+                truncated_flag, actual_duration = is_audio_truncated(
+                    history.file_path, track.duration_seconds
+                )
+                if truncated_flag:
+                    logger.info(
+                        f"Truncated audio detected: '{track.title}' "
+                        f"expected={track.duration_seconds}s actual={actual_duration:.1f}s"
+                    )
+                    truncated.append({
+                        "history": history,
+                        "track": track,
+                        "expected_duration_seconds": track.duration_seconds,
+                        "actual_duration_seconds": actual_duration,
+                    })
+
+        # 2. Failed downloads
         failed_histories = (
             self.db.query(DownloadHistory)
             .filter(DownloadHistory.status == "failed")
             .order_by(DownloadHistory.created_at.desc())
             .all()
         )
-
-        # 2. Completed but file missing on disk
-        completed_histories = (
-            self.db.query(DownloadHistory)
-            .filter(DownloadHistory.status == "completed")
-            .all()
-        )
-        file_missing_histories = [
-            h for h in completed_histories
-            if not h.file_path or not os.path.exists(h.file_path)
-        ]
 
         # 3. Tracks with no download history at all
         downloaded_track_ids = (
@@ -185,6 +258,7 @@ class DownloadService:
         )
 
         return {
+            "truncated": truncated,
             "failed": failed_histories,
             "file_missing": file_missing_histories,
             "never_downloaded": never_downloaded_tracks,
@@ -194,9 +268,17 @@ class DownloadService:
         """
         Re-download all incomplete tracks.
         Optionally filter by playlist_id.
-        Returns counts of retried items per category.
+        Returns lists of new DownloadHistory records per category.
         """
         incomplete = self.get_incomplete_downloads()
+
+        retried_truncated = []
+        for item in incomplete["truncated"]:
+            track = item["track"]
+            if playlist_id and track.playlist_id != playlist_id:
+                continue
+            new_history = self.download_track(track)
+            retried_truncated.append(new_history)
 
         retried_failed = []
         for history in incomplete["failed"]:
@@ -226,11 +308,13 @@ class DownloadService:
             retried_never.append(new_history)
 
         logger.info(
-            f"Redownload incomplete: failed={len(retried_failed)}, "
-            f"file_missing={len(retried_missing)}, never_downloaded={len(retried_never)}"
+            f"Redownload incomplete: truncated={len(retried_truncated)}, "
+            f"failed={len(retried_failed)}, file_missing={len(retried_missing)}, "
+            f"never_downloaded={len(retried_never)}"
         )
 
         return {
+            "retried_truncated": retried_truncated,
             "retried_failed": retried_failed,
             "retried_file_missing": retried_missing,
             "retried_never_downloaded": retried_never,
