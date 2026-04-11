@@ -7,6 +7,24 @@ from backend.config import settings
 logger = logging.getLogger(__name__)
 
 
+class _YtDlpLogger:
+    """Forward yt-dlp internal messages to Python logging."""
+    def debug(self, msg: str) -> None:
+        if msg.startswith("[debug]"):
+            logger.debug(msg)
+        else:
+            logger.info(msg)
+
+    def info(self, msg: str) -> None:
+        logger.info(msg)
+
+    def warning(self, msg: str) -> None:
+        logger.warning(msg)
+
+    def error(self, msg: str) -> None:
+        logger.error(msg)
+
+
 class YtDlpService:
     """Wrapper class for yt-dlp library"""
 
@@ -35,17 +53,25 @@ class YtDlpService:
             "noplaylist": True,
             "youtube_include_dash_manifest": True,
             "youtube_include_hls_manifest": True,
-            "verbose": True,
-            "remote_components": ["ejs:github"],
-            "format": "bestaudio/best",
         }
 
-        # Use setting if explicitly provided
+        # Resolve cookie file path to absolute to avoid working-directory ambiguity
+        cookie_path: Path | None = None
         if settings.youtube_cookies_file:
-            self.base_opts["cookiefile"] = settings.youtube_cookies_file
-        # Otherwise, look for data/cookies.txt
-        elif Path("./data/cookies.txt").exists():
-            self.base_opts["cookiefile"] = "./data/cookies.txt"
+            cookie_path = Path(settings.youtube_cookies_file).resolve()
+        else:
+            candidate = Path("./data/cookies.txt").resolve()
+            if candidate.exists():
+                cookie_path = candidate
+
+        if cookie_path and cookie_path.exists():
+            self.base_opts["cookiefile"] = str(cookie_path)
+            logger.info(f"Using cookies file: {cookie_path}")
+        else:
+            logger.warning(
+                "No cookies file found. Private playlists (e.g. Liked Music) will not be accessible. "
+                f"Place cookies at {Path('./data/cookies.txt').resolve()}"
+            )
 
     def extract_playlist_info(self, url: str) -> dict | None:
         """Extract playlist metadata without downloading"""
@@ -53,6 +79,8 @@ class YtDlpService:
             **self.base_opts,
             "extract_flat": "in_playlist",
             "skip_download": True,
+            # Pipe yt-dlp's own log messages into Python logging
+            "logger": _YtDlpLogger(),
         }
 
         try:
