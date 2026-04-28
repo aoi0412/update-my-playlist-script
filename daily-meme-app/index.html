@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今日のネットミーム</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://i.imgflip.com" crossorigin />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">😂</span>
+      <h1>今日のネットミーム</h1>
+    </div>
+    <p class="tagline">毎日ひとつ、世界で愛されるミームを日本語解説付きで。</p>
+  </header>
+
+  <main>
+    <section class="meme-card" id="meme-card" aria-busy="true">
+      <div class="meme-meta">
+        <time id="today-date" class="today-date"></time>
+        <span class="dot" aria-hidden="true">•</span>
+        <span class="day-of-year" id="day-of-year"></span>
+      </div>
+
+      <h2 class="meme-title" id="meme-jp-name">読み込み中...</h2>
+      <p class="meme-en-name" id="meme-en-name"></p>
+
+      <figure class="meme-figure">
+        <div class="image-wrapper" id="image-wrapper">
+          <div class="image-skeleton" id="image-skeleton" aria-hidden="true"></div>
+          <img id="meme-image" alt="" />
+          <div class="image-fallback" id="image-fallback" hidden>
+            <span class="fallback-emoji" aria-hidden="true">🖼️</span>
+            <p>画像を読み込めませんでした。<br />ネットワーク環境をご確認ください。</p>
+          </div>
+        </div>
+      </figure>
+
+      <div class="meme-info">
+        <h3>解説</h3>
+        <p id="meme-description"></p>
+        <dl class="meme-origin">
+          <div>
+            <dt>初出</dt>
+            <dd id="meme-year">—</dd>
+          </div>
+          <div>
+            <dt>由来</dt>
+            <dd id="meme-origin">—</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="meme-actions">
+        <button id="reroll-btn" type="button" class="btn btn-secondary">
+          別のミームを見る
+        </button>
+        <button id="share-btn" type="button" class="btn btn-primary">
+          コピーしてシェア
+        </button>
+      </div>
+      <p class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© <span id="footer-year"></span> Daily Meme App — 画像はオリジナル投稿者・権利者に帰属します。</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

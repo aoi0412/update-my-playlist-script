@@ -1,0 +1,250 @@
+[
+  {
+    "name": "Drake Hotline Bling",
+    "jpName": "ドレイクの拒否/同意ミーム",
+    "image": "https://i.imgflip.com/30b1gx.jpg",
+    "description": "ラッパー Drake が上のコマで嫌そうに顔を背け、下のコマで満足げに指差す2コマ画像。「Aは却下、Bを採用」と好みや選択を比較するときに使われる定番ミーム。",
+    "year": 2015,
+    "origin": "Drakeのミュージックビデオ「Hotline Bling」"
+  },
+  {
+    "name": "Distracted Boyfriend",
+    "jpName": "よそ見する彼氏",
+    "image": "https://i.imgflip.com/1ur9b0.jpg",
+    "description": "彼女と歩く男性が、すれ違う別の女性に振り向いてしまうストックフォト。「本来集中すべき対象」と「気が逸れる対象」のラベル付けで、浮気心や脱線を風刺するのに使われる。",
+    "year": 2017,
+    "origin": "Antonio Guillemのストックフォト"
+  },
+  {
+    "name": "Two Buttons",
+    "jpName": "2つのボタン",
+    "image": "https://i.imgflip.com/1g8my4.jpg",
+    "description": "汗だくの男が押すべきボタンを2つの間で迷っている画像。どちらを選んでも結果が悲惨な、究極の二択を表現するときに使われる。",
+    "year": 2014,
+    "origin": "Webコミック「Jake Clark」"
+  },
+  {
+    "name": "Surprised Pikachu",
+    "jpName": "驚いたピカチュウ",
+    "image": "https://i.imgflip.com/2kbn1e.jpg",
+    "description": "口を半開きにして驚くピカチュウのアニメスクショ。当然の結果に対してわざとらしく驚いてみせる、皮肉たっぷりのリアクションで使う。",
+    "year": 2018,
+    "origin": "アニメ「ポケットモンスター」"
+  },
+  {
+    "name": "Roll Safe",
+    "jpName": "賢いと思っている人",
+    "image": "https://i.imgflip.com/1h7in3.jpg",
+    "description": "こめかみを指差してニヤッと笑う男性。「○○すれば××にならない」のような屁理屈・抜け道思考を披露するときに使われる、自称・天才ミーム。",
+    "year": 2017,
+    "origin": "Kayode Ewumiの動画「Hood Documentary」"
+  },
+  {
+    "name": "Woman Yelling at Cat",
+    "jpName": "泣き叫ぶ女と無関心の猫",
+    "image": "https://i.imgflip.com/345v97.jpg",
+    "description": "感情的に叫ぶ女性と、テーブルでくつろぐ無表情の白猫を並べた2コマ。論争で熱くなる側と冷静（あるいは無関心）な側の対比に使われる。",
+    "year": 2019,
+    "origin": "「リアル・ハウスワイブズ」と Smudge the Catの合成"
+  },
+  {
+    "name": "Mocking SpongeBob",
+    "jpName": "煽りスポンジボブ",
+    "image": "https://i.imgflip.com/1otk96.jpg",
+    "description": "中腰で変顔をしているスポンジ・ボブの画像に、大文字小文字を交互にした文章（mOcKiNg cAsE）を添える。相手の発言を子供っぽく真似してバカにするときに使う。",
+    "year": 2017,
+    "origin": "アニメ「スポンジ・ボブ」"
+  },
+  {
+    "name": "Expanding Brain",
+    "jpName": "脳が進化していくミーム",
+    "image": "https://i.imgflip.com/1jwhww.jpg",
+    "description": "段階的に脳が光り輝いていく4〜6コマ。下から上に進むほど一見「賢そう」だが、実際は段々ぶっ飛んだ発想になる、知性のインフレを皮肉る構図。",
+    "year": 2017,
+    "origin": "匿名掲示板の合成画像"
+  },
+  {
+    "name": "Is This A Pigeon?",
+    "jpName": "これは鳩ですか？",
+    "image": "https://i.imgflip.com/1o00in.jpg",
+    "description": "蝶を指差して「これは鳩ですか？」と尋ねるアニメ青年。明らかに違うものを誤認している人を揶揄する、勘違いミームの代表格。",
+    "year": 2018,
+    "origin": "アニメ「The Brave Fighter of Sun Fighbird」"
+  },
+  {
+    "name": "Change My Mind",
+    "jpName": "Change My Mind（反論があるなら来い）",
+    "image": "https://i.imgflip.com/24y43o.jpg",
+    "description": "屋外のテーブルに座って看板を立てる男性のミーム。看板に挑発的な持論を書き「反論があるなら言ってみろ」と問いかける形式で使われる。",
+    "year": 2018,
+    "origin": "Steven Crowderの街頭討論企画"
+  },
+  {
+    "name": "Doge",
+    "jpName": "ドージ（柴犬）",
+    "image": "https://i.imgflip.com/4t0m5.jpg",
+    "description": "横目でこちらを見る柴犬「かぼす」の写真の周りに、Comic Sansフォントで内なる声（much wow, very ○○）を散りばめるネット文化の象徴。",
+    "year": 2013,
+    "origin": "佐藤あつこさんが投稿した愛犬ブログ"
+  },
+  {
+    "name": "This Is Fine",
+    "jpName": "ぜんぜん大丈夫（炎の中の犬）",
+    "image": "https://i.imgflip.com/wxica.jpg",
+    "description": "家の中が燃えているのに「これでいいんだ」とコーヒーを啜る犬。明らかに状況が破綻しているのに平静を装う、現実逃避を表すときに使われる。",
+    "year": 2013,
+    "origin": "KC Greenの漫画「Gunshow」"
+  },
+  {
+    "name": "Stonks",
+    "jpName": "ストンクス",
+    "image": "https://i.imgflip.com/3si4.jpg",
+    "description": "右肩上がりのチャートを背にした、無機質なCG男「Meme Man」と「STONKS」の文字。賢そうに見えて中身のない投資ノリや、ささいな得を大げさに祝うときに使う。",
+    "year": 2017,
+    "origin": "Facebook「Special meme fresh」"
+  },
+  {
+    "name": "Galaxy Brain",
+    "jpName": "宇宙脳",
+    "image": "https://i.imgflip.com/26jx0o.jpg",
+    "description": "Expanding Brainの最終形態として、頭が銀河そのものになる演出。常識から逸脱した「悟りの境地」のような考えを誇張するときに使われる。",
+    "year": 2017,
+    "origin": "Expanding Brainミームの派生"
+  },
+  {
+    "name": "Hide the Pain Harold",
+    "jpName": "痛みを隠すハロルド",
+    "image": "https://i.imgflip.com/9ehk.jpg",
+    "description": "笑顔の裏で何かを耐えている老紳士のストックフォト。表向きは平気そうにふるまっているが内心は限界、という気持ちを表すのに最適。",
+    "year": 2011,
+    "origin": "ハンガリー人のストックフォトモデル András Aratóさん"
+  },
+  {
+    "name": "Y U No",
+    "jpName": "Y U NO（なぜしないんだ）",
+    "image": "https://i.imgflip.com/9c9.jpg",
+    "description": "強烈な顔で詰め寄るキャラクターが「Y U NO ○○?!」と訴えるラージヘッドミーム。誰かが当然やるべきことをやってくれないときの不満を表す。",
+    "year": 2010,
+    "origin": "アニメ「Gantz」のスクショ加工"
+  },
+  {
+    "name": "Trollface",
+    "jpName": "トロールフェイス",
+    "image": "https://i.imgflip.com/2u5kn.jpg",
+    "description": "嫌な笑みを浮かべる白黒の落書き顔。ネットいじり・荒らし・「釣り」を成功させたときのドヤ顔として、ネット黎明期から使われてきた古典ミーム。",
+    "year": 2008,
+    "origin": "DeviantArtのCarlos Ramirezによる落書き"
+  },
+  {
+    "name": "Pepe the Frog",
+    "jpName": "ペペ・ザ・フロッグ",
+    "image": "https://i.imgflip.com/4lj.jpg",
+    "description": "緑色のカエル「ペペ」のキャラクター。Sad Pepe / Smug Pepe / Feels Good Manなど派生が無数にあり、感情表現のスタンプ的に使われる。",
+    "year": 2005,
+    "origin": "Matt Furieの漫画「Boy's Club」"
+  },
+  {
+    "name": "Bad Luck Brian",
+    "jpName": "ついてない男ブライアン",
+    "image": "https://i.imgflip.com/1bij.jpg",
+    "description": "ニットベスト姿で歯を剥き出しに笑う少年の卒アル写真。「ついに告白した→相手は親友」のような、努力の報われない不運エピソードに添えられる。",
+    "year": 2012,
+    "origin": "Reddit投稿者の友人の卒アル"
+  },
+  {
+    "name": "Success Kid",
+    "jpName": "サクセス・キッド",
+    "image": "https://i.imgflip.com/1bhk.jpg",
+    "description": "砂を握りしめて勝ち誇った表情をする赤ちゃん。日常の小さな勝利、コツコツ積み上げた成功体験を讃えるときに使われるポジティブミーム。",
+    "year": 2007,
+    "origin": "Laney Griner撮影の自身の息子の写真"
+  },
+  {
+    "name": "First World Problems",
+    "jpName": "先進国の悩み",
+    "image": "https://i.imgflip.com/1bhf.jpg",
+    "description": "目に涙を浮かべる白人女性のストックフォト。「Wi‑Fiが遅い」「冷蔵庫の食材を選びきれない」など、贅沢な悩みをセルフツッコミで嘆くときに使う。",
+    "year": 2011,
+    "origin": "ストックフォト「Crying Woman」"
+  },
+  {
+    "name": "One Does Not Simply",
+    "jpName": "そう簡単には行かない（ボロミア）",
+    "image": "https://i.imgflip.com/1bgw.jpg",
+    "description": "「ロード・オブ・ザ・リング」のボロミアが手を広げ「One does not simply ○○」と忠告する1コマ。何かが思っているほど簡単ではないと指摘するときに使う。",
+    "year": 2011,
+    "origin": "映画「ロード・オブ・ザ・リング」"
+  },
+  {
+    "name": "Confused Math Lady",
+    "jpName": "計算するブラジル女優",
+    "image": "https://i.imgflip.com/1jzkqr.jpg",
+    "description": "頭の周りに数式が浮かぶ困惑顔の女優。複雑なロジックや、説明されてもまったく理解できない状況を表すときに使われる。",
+    "year": 2013,
+    "origin": "ブラジルのテレノベラ「Senhora do Destino」"
+  },
+  {
+    "name": "Disaster Girl",
+    "jpName": "ディザスター・ガール",
+    "image": "https://i.imgflip.com/23ls.jpg",
+    "description": "燃え盛る家を背景に意味深な笑みを浮かべる少女。「裏で実は自分が仕組んだのでは？」と疑いたくなる出来事に添えられる。2021年にはNFTで約56万ドルで落札された。",
+    "year": 2008,
+    "origin": "Dave Roth氏が娘Zoëを撮影した写真"
+  },
+  {
+    "name": "Grumpy Cat",
+    "jpName": "グランピーキャット",
+    "image": "https://i.imgflip.com/8p0a.jpg",
+    "description": "口角が下がった不機嫌顔の猫「タルダー・ソース」。常に不機嫌そうな表情から、皮肉や否定的な感想を述べる場面で使われた看板ミーム。",
+    "year": 2012,
+    "origin": "Tabatha Bundesen家の猫タルダー・ソース"
+  },
+  {
+    "name": "NPC Wojak",
+    "jpName": "NPCウォジャック",
+    "image": "https://i.imgflip.com/2hgfw.jpg",
+    "description": "灰色の無表情な人物のドット顔。自分の頭で考えず周囲と同じことしか言わない人を「NPC」になぞらえて揶揄するときに使われる。",
+    "year": 2018,
+    "origin": "4chan発のWojak派生"
+  },
+  {
+    "name": "Gigachad",
+    "jpName": "ギガチャド",
+    "image": "https://i.imgflip.com/4xz3xz.jpg",
+    "description": "極端にシャープな顎を持つモノクロの筋肉男。圧倒的に正しく堂々とした「強キャラ」の代名詞として、賞賛や皮肉混じりに使われる。",
+    "year": 2017,
+    "origin": "ロシア人モデル Ernest Khalimovの加工写真"
+  },
+  {
+    "name": "We Live in a Society",
+    "jpName": "我々は社会に生きている",
+    "image": "https://i.imgflip.com/2kavtu.jpg",
+    "description": "「ジョーカー」風の重々しい一言「We live in a society」をネタにしたフレーズミーム。深刻ぶりたい場面のセルフパロディとして使われる。",
+    "year": 2018,
+    "origin": "DCコミックスとオンラインのジョーク"
+  },
+  {
+    "name": "Always Has Been",
+    "jpName": "（宇宙飛行士）ずっとそうだったよ",
+    "image": "https://i.imgflip.com/46e43q.jpg",
+    "description": "宇宙から地球を見て「Wait, it's all ○○?」と驚く飛行士に、後ろから銃を構えた仲間が「Always has been.」と返す2コマ。世界の真実への気づきネタに使われる。",
+    "year": 2016,
+    "origin": "DeviantArtのコミック発祥"
+  },
+  {
+    "name": "Side Eye Chloe",
+    "jpName": "じと目クロエ",
+    "image": "https://i.imgflip.com/1jwby4.jpg",
+    "description": "横目で訝しげにカメラを見つめる少女クロエ。怪しい発言・気まずい話題に対する「は？」という冷ややかな視線を代弁してくれるミーム。",
+    "year": 2013,
+    "origin": "YouTubeにアップされた家族動画"
+  },
+  {
+    "name": "Sad Keanu",
+    "jpName": "悲しいキアヌ",
+    "image": "https://i.imgflip.com/4o7q.jpg",
+    "description": "ベンチでひとり寂しそうにサンドイッチを食べるキアヌ・リーブスのパパラッチ写真。少し物悲しい気分や、不憫な状況を表現するときに使われる。",
+    "year": 2010,
+    "origin": "パパラッチ撮影の街頭スナップ"
+  }
+]

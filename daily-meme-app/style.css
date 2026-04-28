@@ -1,0 +1,299 @@
+:root {
+  --bg: #0f1020;
+  --bg-soft: #181a35;
+  --card: #ffffff;
+  --card-fg: #1d1f33;
+  --muted: #6b6f86;
+  --accent: #ff5470;
+  --accent-2: #ffb73a;
+  --primary: #5b6cff;
+  --primary-hover: #4452e0;
+  --border: #e5e7f0;
+  --shadow: 0 30px 60px -20px rgba(15, 16, 32, 0.45);
+  --radius-lg: 24px;
+  --radius-md: 14px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f6f7ff;
+  background: radial-gradient(1200px 600px at 10% -10%, #2a2c66 0%, transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, #ff547030 0%, transparent 60%),
+    var(--bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.site-header {
+  text-align: center;
+  padding: 56px 24px 24px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  font-size: 36px;
+  filter: drop-shadow(0 4px 10px rgba(255, 84, 112, 0.45));
+}
+
+.site-header h1 {
+  font-size: clamp(24px, 4vw, 36px);
+  margin: 0;
+  letter-spacing: 0.02em;
+  background: linear-gradient(120deg, #fff 0%, #ffd2dc 50%, #ffe7a8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  margin: 8px 0 0;
+  color: #c9cce3;
+  font-size: 14px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 16px 16px 64px;
+}
+
+.meme-card {
+  width: min(720px, 100%);
+  background: var(--card);
+  color: var(--card-fg);
+  border-radius: var(--radius-lg);
+  padding: clamp(20px, 4vw, 36px);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.meme-card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--primary) 100%);
+  z-index: -1;
+  border-radius: calc(var(--radius-lg) + 2px);
+  filter: blur(0px);
+  opacity: 0.6;
+}
+
+.meme-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.today-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  color: var(--border);
+}
+
+.meme-title {
+  margin: 0;
+  font-size: clamp(22px, 3.6vw, 30px);
+  line-height: 1.25;
+}
+
+.meme-en-name {
+  margin: -8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.meme-figure {
+  margin: 0;
+}
+
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: linear-gradient(135deg, #f3f4ff 0%, #ffe6ec 100%);
+  border: 1px solid var(--border);
+}
+
+.image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #f8f9fc;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.image-wrapper img.is-loaded {
+  opacity: 1;
+}
+
+.image-skeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #eef0fb 0%, #f7f8ff 50%, #eef0fb 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.image-skeleton.is-hidden {
+  display: none;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.image-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
+}
+
+.fallback-emoji {
+  font-size: 48px;
+}
+
+.meme-info h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+  text-transform: uppercase;
+}
+
+.meme-info p {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 15px;
+  color: #2a2d44;
+}
+
+.meme-origin {
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  background: #f6f7fc;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+}
+
+.meme-origin > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meme-origin dt {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.meme-origin dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--card-fg);
+}
+
+.meme-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 10px 20px -8px rgba(91, 108, 255, 0.55);
+}
+
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-secondary {
+  background: #eef0fb;
+  color: var(--card-fg);
+}
+
+.btn-secondary:hover { background: #e2e5f5; }
+
+.copy-feedback {
+  margin: 0;
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.site-footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: #9aa0c2;
+}
+
+@media (max-width: 480px) {
+  .site-header { padding-top: 32px; }
+  .meme-origin { grid-template-columns: 1fr; }
+}
