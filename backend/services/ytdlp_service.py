@@ -31,7 +31,7 @@ class YtDlpService:
             "max_sleep_interval": 10,
             "quiet": False,
             "extract_flat": False,
-            "no_warnings": True,
+            "no_warnings": False,
             "ignoreerrors": True,
             "noplaylist": True,
             "youtube_include_dash_manifest": True,
@@ -39,17 +39,28 @@ class YtDlpService:
             "verbose": True,
             "remote_components": ["ejs:github"],
             "format": "bestaudio/best",
-            "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
+            "nocheckcertificate": True,
+            "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            "extractor_args": {
+                "youtube": {
+                    # webクライアントはPO Token制限が厳しいため、ios/androidを優先
+                    "player_client": ["ios", "android"], 
+                    "skip": ["dash", "hls"], # 必要に応じて
+                }
+            },
         }
 
         # Use setting if explicitly provided, otherwise fall back to the
         # cookies.txt uploaded via the /api/settings/cookies endpoint.
+        cookie_path = None
         if settings.youtube_cookies_file:
-            self.base_opts["cookiefile"] = settings.youtube_cookies_file
+            cookie_path = settings.youtube_cookies_file
         elif Path("./data/cookies.txt").exists():
-            self.base_opts["cookiefile"] = "./data/cookies.txt"
+            cookie_path = "./data/cookies.txt"
 
-        if not self.base_opts.get("cookiefile"):
+        if cookie_path:
+            self.base_opts["cookiefile"] = str(Path(cookie_path).resolve())
+        else:
             logger.warning("No cookies provided. Age-restricted videos might fail.")
 
     def extract_playlist_info(self, url: str) -> dict | None:
