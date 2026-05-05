@@ -15,7 +15,7 @@ class YtDlpService:
         Path(self.download_dir).mkdir(parents=True, exist_ok=True)
 
         self.base_opts = {
-            "format": "bestaudio/best",
+            "format": "ba",
             "outtmpl": f"{self.download_dir}/%(artist,uploader)s - %(title)s.%(ext)s",
             "writethumbnail": True,
             "postprocessors": [
