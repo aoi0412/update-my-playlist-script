@@ -38,6 +38,7 @@ class YtDlpService:
             "verbose": True,
             "remote_components": ["ejs:github"],
             "format": "bestaudio/best",
+            "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
         }
 
         # Use setting if explicitly provided
