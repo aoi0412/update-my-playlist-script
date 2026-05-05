@@ -42,14 +42,15 @@ class YtDlpService:
             "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
         }
 
-        # Use setting if explicitly provided
+        # Use setting if explicitly provided, otherwise fall back to the
+        # cookies.txt uploaded via the /api/settings/cookies endpoint.
         if settings.youtube_cookies_file:
             self.base_opts["cookiefile"] = settings.youtube_cookies_file
-        if not self.base_opts.get("cookiefile"):
-            logger.warning("No cookies provided. Age-restricted videos might fail.")
-        # Otherwise, look for data/cookies.txt
         elif Path("./data/cookies.txt").exists():
             self.base_opts["cookiefile"] = "./data/cookies.txt"
+
+        if not self.base_opts.get("cookiefile"):
+            logger.warning("No cookies provided. Age-restricted videos might fail.")
 
     def extract_playlist_info(self, url: str) -> dict | None:
         """Extract playlist metadata without downloading"""
