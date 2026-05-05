@@ -45,7 +45,7 @@ class YtDlpService:
         # Use setting if explicitly provided
         if settings.youtube_cookies_file:
             self.base_opts["cookiefile"] = settings.youtube_cookies_file
-        if not self.base_opts["cookiefile"]:
+        if not self.base_opts.get("cookiefile"):
             logger.warning("No cookies provided. Age-restricted videos might fail.")
         # Otherwise, look for data/cookies.txt
         elif Path("./data/cookies.txt").exists():
