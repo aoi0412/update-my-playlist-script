@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   CheckCircle,
   XCircle,
@@ -34,15 +34,23 @@ export default function HistoryPage() {
   const [retryingId, setRetryingId] = useState<number | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Refs always hold the latest filter values, avoiding stale closures in the interval
+  const statusFilterRef = useRef(statusFilter)
+  const playlistFilterRef = useRef(playlistFilter)
+  statusFilterRef.current = statusFilter
+  playlistFilterRef.current = playlistFilter
+
   useEffect(() => {
     let isCurrent = true
 
     async function fetchData(showLoading = true) {
       if (showLoading) setLoading(true)
       try {
+        const currentStatus = statusFilterRef.current
+        const currentPlaylist = playlistFilterRef.current
         const params: Record<string, string | number> = { limit: 100 }
-        if (statusFilter) params.status = statusFilter
-        if (playlistFilter) params.playlist_id = Number(playlistFilter)
+        if (currentStatus) params.status = currentStatus
+        if (currentPlaylist) params.playlist_id = Number(currentPlaylist)
 
         const [downloadsRes, playlistsRes] = await Promise.all([
           api.getDownloadHistory(params),
