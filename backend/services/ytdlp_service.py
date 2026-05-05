@@ -42,6 +42,8 @@ class YtDlpService:
                     "player_client": ["web", "tv", "mweb"],
                     # PO Token関連の予期せぬエラーを防ぐ
                     "player_skip": ["webpage", "configs"],
+                    # YouTubeから日本語のタイトル・アーティスト名を取得する
+                    "lang": ["ja"],
                 }
             },
             # 認証エラーを回避するために重要

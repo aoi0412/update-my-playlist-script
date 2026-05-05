@@ -66,8 +66,12 @@ class DownloadService:
         self.db = db
         self.ytdlp = YtDlpService()
 
-    def download_track(self, track: Track) -> DownloadHistory:
-        """Download a single track and create download history record"""
+    def download_track(self, track: Track, update_metadata: bool = False) -> DownloadHistory:
+        """Download a single track and create download history record.
+
+        If update_metadata is True, updates the Track's title/artist in the DB
+        with the metadata returned by yt-dlp (used for Japanese metadata fix).
+        """
         # Create download history record
         history = DownloadHistory(
             track_id=track.id,
@@ -91,6 +95,13 @@ class DownloadService:
             info = ytdlp.download_track(track_url)
             if not info:
                 raise Exception("Download returned no info")
+
+            # Optionally update the Track's stored metadata from the new download info
+            if update_metadata:
+                new_title = info.get("title") or track.title
+                new_artist = info.get("artist") or info.get("uploader") or track.artist
+                track.title = new_title
+                track.artist = new_artist
 
             # Get file path and size
             file_path = ytdlp.get_downloaded_file_path(info)
@@ -357,4 +368,74 @@ class DownloadService:
             "retried_failed": retried_failed,
             "retried_file_missing": retried_missing,
             "retried_never_downloaded": retried_never,
+        }
+
+    # ---------------------------------------------------------------------------
+    # Japanese metadata helpers
+    # ---------------------------------------------------------------------------
+
+    @staticmethod
+    def _has_japanese_characters(text: str) -> bool:
+        """Return True if text contains at least one hiragana, katakana, or kanji character."""
+        for char in text:
+            cp = ord(char)
+            if (
+                0x3040 <= cp <= 0x309F  # Hiragana
+                or 0x30A0 <= cp <= 0x30FF  # Katakana (including half-width)
+                or 0x4E00 <= cp <= 0x9FFF  # CJK Unified Ideographs
+                or 0x3400 <= cp <= 0x4DBF  # CJK Extension A
+                or 0xF900 <= cp <= 0xFAFF  # CJK Compatibility Ideographs
+                or 0xFF65 <= cp <= 0xFF9F  # Half-width Katakana
+            ):
+                return True
+        return False
+
+    def get_tracks_needing_japanese_metadata(
+        self, playlist_id: int | None = None
+    ) -> list[Track]:
+        """
+        Return tracks whose title AND artist contain no Japanese characters.
+        These are candidates for re-downloading to obtain Japanese metadata.
+        Optionally filter by playlist_id.
+        """
+        query = self.db.query(Track)
+        if playlist_id is not None:
+            query = query.filter(Track.playlist_id == playlist_id)
+
+        return [
+            track
+            for track in query.all()
+            if not self._has_japanese_characters(track.title or "")
+            and not self._has_japanese_characters(track.artist or "")
+        ]
+
+    def fix_japanese_metadata(
+        self, playlist_id: int | None = None
+    ) -> dict:
+        """
+        Re-download tracks that have no Japanese characters in title/artist,
+        updating both the audio file and the stored metadata in the DB.
+        Optionally filter by playlist_id.
+        Returns counts of updated and failed tracks.
+        """
+        tracks = self.get_tracks_needing_japanese_metadata(playlist_id=playlist_id)
+
+        updated_histories: list[DownloadHistory] = []
+        failed_histories: list[DownloadHistory] = []
+
+        for track in tracks:
+            history = self.download_track(track, update_metadata=True)
+            if history.status == "completed":
+                updated_histories.append(history)
+            else:
+                failed_histories.append(history)
+
+        logger.info(
+            f"fix_japanese_metadata: updated={len(updated_histories)}, "
+            f"failed={len(failed_histories)}"
+        )
+
+        return {
+            "updated": updated_histories,
+            "failed": failed_histories,
         }
