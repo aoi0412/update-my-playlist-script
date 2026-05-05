@@ -7,7 +7,9 @@ from backend.api.schemas.download import (
     DownloadHistoryResponse,
     DownloadHistoryWithTrack,
     DownloadStats,
+    FixJapaneseMetadataResult,
     IncompleteDownloadsResponse,
+    NonJapaneseTracksResponse,
     RedownloadResult,
     TruncatedDownload,
 )
@@ -153,6 +155,42 @@ def redownload_incomplete(
         "retried_file_missing_count": retried_missing,
         "retried_never_downloaded_count": retried_never,
         "total_retried": retried_truncated + retried_failed + retried_missing + retried_never,
+    }
+
+
+@router.get("/non-japanese", response_model=NonJapaneseTracksResponse)
+def get_non_japanese_tracks(
+    playlist_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    List tracks whose title and artist contain no Japanese characters.
+    These are candidates for re-downloading to obtain Japanese metadata.
+    Optionally filter by playlist_id.
+    """
+    service = DownloadService(db)
+    tracks = service.get_tracks_needing_japanese_metadata(playlist_id=playlist_id)
+    return {"tracks": tracks, "total_count": len(tracks)}
+
+
+@router.post("/fix-japanese-metadata", response_model=FixJapaneseMetadataResult)
+def fix_japanese_metadata(
+    playlist_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Re-download tracks that have no Japanese characters in title/artist.
+    Updates the audio file AND the stored title/artist in the database.
+    Optionally filter by playlist_id.
+    """
+    service = DownloadService(db)
+    result = service.fix_japanese_metadata(playlist_id=playlist_id)
+    updated = len(result["updated"])
+    failed = len(result["failed"])
+    return {
+        "updated_count": updated,
+        "failed_count": failed,
+        "total_processed": updated + failed,
     }
 
 

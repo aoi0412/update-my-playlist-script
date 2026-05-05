@@ -81,3 +81,14 @@ class RedownloadResult(BaseModel):
     retried_file_missing_count: int
     retried_never_downloaded_count: int
     total_retried: int
+
+
+class NonJapaneseTracksResponse(BaseModel):
+    tracks: list[TrackSimple]
+    total_count: int
+
+
+class FixJapaneseMetadataResult(BaseModel):
+    updated_count: int
+    failed_count: int
+    total_processed: int
