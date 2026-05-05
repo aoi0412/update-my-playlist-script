@@ -139,6 +139,9 @@ def check_playlist_updates(
     if all_incomplete:
         background_tasks.add_task(download_service.download_new_tracks, all_incomplete)
 
+    # 日本語文字を含まないトラックのメタデータを日本語で再取得する
+    background_tasks.add_task(download_service.fix_japanese_metadata, playlist_id)
+
     msg = f"Found {len(new_tracks)} new tracks"
     if all_incomplete:
         details = []
