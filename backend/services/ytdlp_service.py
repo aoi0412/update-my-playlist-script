@@ -15,7 +15,7 @@ class YtDlpService:
         Path(self.download_dir).mkdir(parents=True, exist_ok=True)
 
         self.base_opts = {
-            "format": "ba",
+            "format": "bestaudio/best",
             "outtmpl": f"{self.download_dir}/%(artist,uploader)s - %(title)s.%(ext)s",
             "writethumbnail": True,
             "postprocessors": [
@@ -30,22 +30,25 @@ class YtDlpService:
             "sleep_interval": 5,
             "max_sleep_interval": 10,
             "quiet": False,
-            "extract_flat": False,
             "no_warnings": False,
             "ignoreerrors": False,
             "noplaylist": True,
-            "youtube_include_dash_manifest": True,
-            "youtube_include_hls_manifest": True,
             "verbose": True,
-            "remote_components": ["ejs:github"],
-            "nocheckcertificate": True,
-            "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            # --- ここからが重要 ---
             "extractor_args": {
                 "youtube": {
-                    # webクライアントはPO Token制限が厳しいため、ios/androidを優先
-                    "player_client": ["ios", "android"], 
-                    "skip": ["dash", "hls"], # 必要に応じて
+                    # webクライアントをあえて含め、クッキーを有効にする
+                    # tvクライアントは現在制限が緩い傾向にあります
+                    "player_client": ["web", "tv", "mweb"],
+                    # PO Token関連の予期せぬエラーを防ぐ
+                    "player_skip": ["webpage", "configs"],
                 }
+            },
+            # 認証エラーを回避するために重要
+            "http_headers": {
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
         }
 
