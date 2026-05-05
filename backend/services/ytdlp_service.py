@@ -44,7 +44,11 @@ class YtDlpService:
                     "player_skip": ["webpage", "configs"],
                     # YouTubeから日本語のタイトル・アーティスト名を取得する
                     "lang": ["ja"],
-                }
+                },
+                # music.youtube.com 用エクストラクターにも同じ言語設定を適用
+                "youtubemusic": {
+                    "lang": ["ja"],
+                },
             },
             # 認証エラーを回避するために重要
             "http_headers": {
@@ -167,7 +171,9 @@ class YtDlpService:
     def build_track_url(platform: str, external_id: str) -> str:
         """Build track URL from platform and external ID"""
         if platform == "youtube_music":
-            return f"https://www.youtube.com/watch?v={external_id}"
+            # music.youtube.com を使うことで YouTube Music 専用エクストラクターが
+            # 適用され、アーティスト・アルバム等の日本語メタデータが正しく取得される
+            return f"https://music.youtube.com/watch?v={external_id}"
         elif platform == "soundcloud":
             # SoundCloud URLs are stored as full URLs in external_id
             return external_id
