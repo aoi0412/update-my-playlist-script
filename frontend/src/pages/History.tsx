@@ -32,39 +32,47 @@ export default function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [playlistFilter, setPlaylistFilter] = useState<string>('')
   const [retryingId, setRetryingId] = useState<number | null>(null)
-
-  const fetchData = async (showLoading = true) => {
-    if (showLoading) setLoading(true)
-    try {
-      const params: Record<string, string | number> = { limit: 100 }
-      if (statusFilter) params.status = statusFilter
-      if (playlistFilter) params.playlist_id = Number(playlistFilter)
-
-      const [downloadsRes, playlistsRes] = await Promise.all([
-        api.getDownloadHistory(params),
-        api.getPlaylists(),
-      ])
-      
-      setDownloads(downloadsRes.data)
-      setPlaylists(playlistsRes.data)
-    } catch (error) {
-      console.error('Failed to fetch history:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
+    let isCurrent = true
+
+    async function fetchData(showLoading = true) {
+      if (showLoading) setLoading(true)
+      try {
+        const params: Record<string, string | number> = { limit: 100 }
+        if (statusFilter) params.status = statusFilter
+        if (playlistFilter) params.playlist_id = Number(playlistFilter)
+
+        const [downloadsRes, playlistsRes] = await Promise.all([
+          api.getDownloadHistory(params),
+          api.getPlaylists(),
+        ])
+
+        if (!isCurrent) return
+        setDownloads(downloadsRes.data)
+        setPlaylists(playlistsRes.data)
+      } catch (error) {
+        if (!isCurrent) return
+        console.error('Failed to fetch history:', error)
+      } finally {
+        if (isCurrent) setLoading(false)
+      }
+    }
+
     fetchData()
     const interval = setInterval(() => fetchData(false), 3000)
-    return () => clearInterval(interval)
-  }, [statusFilter, playlistFilter])
+    return () => {
+      isCurrent = false
+      clearInterval(interval)
+    }
+  }, [statusFilter, playlistFilter, refreshKey])
 
   async function handleRetry(downloadId: number) {
     setRetryingId(downloadId)
     try {
       await api.retryDownload(downloadId)
-      await fetchData(false)
+      setRefreshKey((k) => k + 1)
     } catch (error) {
       console.error('Failed to retry download:', error)
       alert('Failed to retry download')
@@ -101,7 +109,7 @@ export default function HistoryPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Download History</h1>
         <button
-          onClick={() => fetchData()}
+          onClick={() => setRefreshKey((k) => k + 1)}
           className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
         >
           <RefreshCw size={20} />
