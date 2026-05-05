@@ -264,6 +264,45 @@ class DownloadService:
             "never_downloaded": never_downloaded_tracks,
         }
 
+    def get_tracks_to_redownload(self, playlist_id: int | None = None) -> dict:
+        """
+        Returns de-duplicated Track objects per incomplete category, optionally filtered by playlist_id.
+        Priority order ensures a track appears in only the first matching category.
+        """
+        incomplete = self.get_incomplete_downloads()
+        seen_ids: set[int] = set()
+
+        def collect(track: Track) -> bool:
+            if track.id in seen_ids:
+                return False
+            if playlist_id is not None and track.playlist_id != playlist_id:
+                return False
+            seen_ids.add(track.id)
+            return True
+
+        truncated = [item["track"] for item in incomplete["truncated"] if collect(item["track"])]
+
+        failed = []
+        for history in incomplete["failed"]:
+            track = self.db.query(Track).filter(Track.id == history.track_id).first()
+            if track and collect(track):
+                failed.append(track)
+
+        file_missing = []
+        for history in incomplete["file_missing"]:
+            track = self.db.query(Track).filter(Track.id == history.track_id).first()
+            if track and collect(track):
+                file_missing.append(track)
+
+        never_downloaded = [t for t in incomplete["never_downloaded"] if collect(t)]
+
+        return {
+            "truncated": truncated,
+            "failed": failed,
+            "file_missing": file_missing,
+            "never_downloaded": never_downloaded,
+        }
+
     def redownload_incomplete(self, playlist_id: int | None = None) -> dict:
         """
         Re-download all incomplete tracks.

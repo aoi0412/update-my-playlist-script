@@ -126,23 +126,34 @@ def check_playlist_updates(
     playlist_service = PlaylistService(db)
     new_tracks = playlist_service.check_for_updates(playlist)
 
-    from backend.db.models import Track, DownloadHistory
-    stuck_tracks = db.query(Track).outerjoin(DownloadHistory).filter(
-        Track.playlist_id == playlist_id,
-        DownloadHistory.id == None
-    ).all()
+    download_service = DownloadService(db)
+    incomplete = download_service.get_tracks_to_redownload(playlist_id=playlist_id)
 
-    tracks_to_download = stuck_tracks
+    all_incomplete = (
+        incomplete["truncated"]
+        + incomplete["failed"]
+        + incomplete["file_missing"]
+        + incomplete["never_downloaded"]
+    )
 
-    if tracks_to_download:
-        download_service = DownloadService(db)
-        background_tasks.add_task(download_service.download_new_tracks, tracks_to_download)
+    if all_incomplete:
+        background_tasks.add_task(download_service.download_new_tracks, all_incomplete)
 
     msg = f"Found {len(new_tracks)} new tracks"
-    if len(tracks_to_download) > len(new_tracks):
-        msg += f". Queued {len(tracks_to_download)} missing downloads."
+    if all_incomplete:
+        details = []
+        if incomplete["truncated"]:
+            details.append(f"{len(incomplete['truncated'])} truncated")
+        if incomplete["failed"]:
+            details.append(f"{len(incomplete['failed'])} failed")
+        if incomplete["file_missing"]:
+            details.append(f"{len(incomplete['file_missing'])} missing")
+        if incomplete["never_downloaded"]:
+            details.append(f"{len(incomplete['never_downloaded'])} never downloaded")
+        msg += f". Queued {len(all_incomplete)} incomplete downloads ({', '.join(details)})"
 
     return {
         "message": msg,
-        "new_tracks": [{"id": t.id, "title": t.title} for t in tracks_to_download],
+        "new_tracks": [{"id": t.id, "title": t.title} for t in new_tracks],
+        "incomplete_tracks": [{"id": t.id, "title": t.title} for t in all_incomplete],
     }
