@@ -1,8 +1,9 @@
+import asyncio
 import logging
-from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from backend.db import SessionLocal, Playlist
+from backend.db.models import DownloadHistory
 from backend.services import PlaylistService, DownloadService
 
 logger = logging.getLogger(__name__)
@@ -10,10 +11,8 @@ logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
 
 
-async def check_playlist_updates_job(playlist_id: int):
-    """Check a playlist for updates and download new tracks"""
-    logger.info(f"Running scheduled check for playlist {playlist_id}")
-
+def _sync_check_playlist_updates(playlist_id: int):
+    """Synchronous worker — runs in a thread pool to avoid blocking the event loop."""
     db = SessionLocal()
     try:
         playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
@@ -37,10 +36,14 @@ async def check_playlist_updates_job(playlist_id: int):
         db.close()
 
 
-async def check_incomplete_downloads_job():
-    """Check for incomplete downloads across all playlists and re-download them"""
-    logger.info("Running scheduled check for incomplete downloads")
+async def check_playlist_updates_job(playlist_id: int):
+    """Check a playlist for updates and download new tracks."""
+    logger.info(f"Running scheduled check for playlist {playlist_id}")
+    await asyncio.to_thread(_sync_check_playlist_updates, playlist_id)
 
+
+def _sync_check_incomplete_downloads():
+    """Synchronous worker — runs in a thread pool to avoid blocking the event loop."""
     db = SessionLocal()
     try:
         download_service = DownloadService(db)
@@ -74,18 +77,22 @@ async def check_incomplete_downloads_job():
         db.close()
 
 
+async def check_incomplete_downloads_job():
+    """Check for incomplete downloads across all playlists and re-download them."""
+    logger.info("Running scheduled check for incomplete downloads")
+    await asyncio.to_thread(_sync_check_incomplete_downloads)
+
+
 def schedule_playlist_check(playlist: Playlist):
     """Schedule periodic check for a playlist"""
     job_id = f"playlist_check_{playlist.id}"
 
-    # Remove existing job if any
     if scheduler.get_job(job_id):
         scheduler.remove_job(job_id)
 
     if not playlist.is_active:
         return
 
-    # Schedule new job
     scheduler.add_job(
         check_playlist_updates_job,
         trigger=IntervalTrigger(hours=playlist.check_interval_hours),
@@ -108,11 +115,23 @@ def setup_scheduler(app):
         """Initialize scheduler and load existing playlist jobs"""
         db = SessionLocal()
         try:
+            # Reset any downloads stuck in "downloading" from before a restart
+            stuck = (
+                db.query(DownloadHistory)
+                .filter(DownloadHistory.status == "downloading")
+                .all()
+            )
+            if stuck:
+                for h in stuck:
+                    h.status = "failed"
+                    h.error_message = "Interrupted by container restart"
+                db.commit()
+                logger.info(f"Reset {len(stuck)} stuck 'downloading' records to 'failed'")
+
             playlists = db.query(Playlist).filter(Playlist.is_active == True).all()
             for playlist in playlists:
                 schedule_playlist_check(playlist)
 
-            # Schedule periodic incomplete download check (every 6 hours)
             scheduler.add_job(
                 check_incomplete_downloads_job,
                 trigger=IntervalTrigger(hours=6),
