@@ -156,11 +156,14 @@ class DownloadService:
         artists_list = [a.strip() for a in re.split(r',|\s+&\s+', artist_str) if a.strip()]
         
         if len(artists_list) > 1:
-            # encoding=3 (UTF-8), text accepts a list of strings
-            audio.add(TPE1(encoding=3, text=artists_list))
-            # Save using ID3v2.4 format to ensure null separators are used
-            audio.save(file_path, v2_version=4)
-            logger.info(f"Applied multi-value tags to {file_path}: {artists_list}")
+            # Navidrome(FFmpeg)はID3v2.4のヌル文字マルチバリューに対応していないため、
+            # 強制的に " / " で結合した1つの文字列として保存する
+            joined_artists = " / ".join(artists_list)
+            audio.add(TPE1(encoding=3, text=[joined_artists]))
+            
+            # 互換性の高いID3v2.3で保存
+            audio.save(file_path, v2_version=3)
+            logger.info(f"Applied Navidrome-compatible tags to {file_path}: {joined_artists}")
 
     def download_new_tracks(self, tracks: list[Track]) -> list[DownloadHistory]:
         """Download multiple tracks"""
