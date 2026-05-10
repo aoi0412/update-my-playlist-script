@@ -105,7 +105,16 @@ class DownloadService:
 
             # Get file path and size
             file_path = ytdlp.get_downloaded_file_path(info)
-            file_size = os.path.getsize(file_path) if file_path and os.path.exists(file_path) else None
+            if file_path and os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+                
+                # Apply mutagen ID3 tags
+                try:
+                    self._apply_multivalue_tags(file_path, track.artist)
+                except Exception as e:
+                    logger.warning(f"Failed to apply mutagen tags for {file_path}: {e}")
+            else:
+                file_size = None
 
             # Update history
             history.status = "completed"
@@ -124,6 +133,34 @@ class DownloadService:
         self.db.commit()
         self.db.refresh(history)
         return history
+
+    def _apply_multivalue_tags(self, file_path: str, artist_str: str | None):
+        """Apply ID3v2.4 multi-value tags using mutagen"""
+        if not file_path.lower().endswith('.mp3') or not artist_str:
+            return
+            
+        try:
+            import mutagen
+            from mutagen.id3 import ID3, TPE1
+        except ImportError:
+            logger.warning("mutagen is not installed. Skipping multi-value tags.")
+            return
+
+        try:
+            audio = ID3(file_path)
+        except mutagen.id3.ID3NoHeaderError:
+            audio = ID3()
+            
+        # Split artists by comma or ampersand
+        import re
+        artists_list = [a.strip() for a in re.split(r',|\s+&\s+', artist_str) if a.strip()]
+        
+        if len(artists_list) > 1:
+            # encoding=3 (UTF-8), text accepts a list of strings
+            audio.add(TPE1(encoding=3, text=artists_list))
+            # Save using ID3v2.4 format to ensure null separators are used
+            audio.save(file_path, v2_version=4)
+            logger.info(f"Applied multi-value tags to {file_path}: {artists_list}")
 
     def download_new_tracks(self, tracks: list[Track]) -> list[DownloadHistory]:
         """Download multiple tracks"""
