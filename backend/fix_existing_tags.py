@@ -2,7 +2,11 @@ import os
 import sys
 
 # プロジェクトのルートディレクトリをパスに追加（モジュール読み込みのため）
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
+# SQLiteの相対パス問題を回避するため、カレントディレクトリをプロジェクトルートに固定
+os.chdir(project_root)
 
 from backend.db.database import SessionLocal
 from backend.services.download_service import DownloadService
